@@ -2,14 +2,13 @@
 #define pin_H
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <assert.h>
 
-#ifdef BUILD
-#include "core.h"
-#endif
+#include "board.h"
 
-#ifndef pin_num
-#define pin_num 32
+#ifndef PIN_NUM
+#define PIN_NUM 32
 #endif
 
 /**
@@ -18,7 +17,7 @@
  */
 struct pin_table
 {
-    struct pin* table[pin_num];
+    struct pin* table[PIN_NUM];
     int size;
 };
 

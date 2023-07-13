@@ -1,0 +1,15 @@
+[submodule "lua"]
+	path = src/lua
+	url = https://github.com/SongZihui-sudo/lua.git
+[submodule "esp-idf"]
+	path = lib/esp-idf
+	url = https://github.com/espressif/esp-idf.git
+[submodule "libopencm3"]
+	path = lib/libopencm3
+	url = https://github.com/libopencm3/libopencm3.git
+[submodule "pico-sdk"]
+	path = lib/pico-sdk
+	url = https://github.com/raspberrypi/pico-sdk.git
+[submodule "tinyusb"]
+	path = drivers/tinyusb
+	url =  https://github.com/hathach/tinyusb.git
