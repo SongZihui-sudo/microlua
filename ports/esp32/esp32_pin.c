@@ -1,4 +1,4 @@
-#include "pico_pin.h"
+#include "esp32_pin.h"
 
 void pin_value( pin* self, bool value ) {}
 
@@ -13,7 +13,7 @@ void pin_init( pin* self, int index )
     self->mValue = 0;
 }
 
-CTOR( pico_pin )
+CTOR( esp32_pin )
 SUPER_CTOR( pin );
 FUNCTION_SETTING( Ipin.value, pin_value );
 FUNCTION_SETTING( Ipin.on, pin_on );

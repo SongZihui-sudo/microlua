@@ -6,74 +6,52 @@
 #include <assert.h>
 
 #include "board.h"
+#include "lw_oopc.h"
 
 #ifndef PIN_NUM
 #define PIN_NUM 32
 #endif
 
 /**
- * @brief pin table
- * 
+ * @brief pin class
+ *
  */
-struct pin_table
-{
-    struct pin* table[PIN_NUM];
-    int size;
-};
-
-/**
- * @brief 初始化表
- * 
- * @param self pin table 对象
- */
-void pin_table_init(struct pin_table* self);
-
-/**
- * @brief 设置指定下标的 pin
- * 
- * @param self  pin table 对象
- * @param index  下标
- * @param value  值
- */
-void pin_table_set_index(struct pin_table* self, size_t index, bool value);
-
-/**
- * @brief pin struct
- * 
- */
-struct pin
+ABS_CLASS( pin )
 {
     int mIndex;
     bool mValue;
 };
 
-/**
- * @brief 初始化一个 pin
- * 
- * @param self pin 指针
- */
-void pin_init(struct pin* self, int index);
+INTERFACE( Ipin )
+{
+    void ( *init )( pin * t, bool index );
+    void ( *value )( pin * t, bool value );
+    void ( *on )( pin * t );
+    void ( *off )( pin * t );
+};
+
+ABS_CLASS( pin_table )
+{
+    pin* table[PIN_NUM];
+    int size;
+    void ( *init )( pin_table* );
+    void ( *item_value )( pin_table, size_t, bool );
+};
 
 /**
- * @brief 为一个 pin 设置值
- * 
- * @param self 
- * @param value 
+ * @brief 初始化表
+ *
+ * @param self pin table 对象
  */
-void pin_value(struct pin* self, bool value);
+void pin_table_init( pin_table* self );
 
 /**
- * @brief 设一个 pin 为高电平
- * 
- * @param self 
+ * @brief 设置指定下标的 pin
+ *
+ * @param self  pin table 对象
+ * @param index  下标
+ * @param value  值
  */
-void pin_on(struct pin* self);
-
-/**
- * @brief 设一个 pin 为低电平
- * 
- * @param self 
- */
-void pin_off(struct pin* self);
+void pin_table_value_index( pin_table* self, size_t index, bool value );
 
 #endif
