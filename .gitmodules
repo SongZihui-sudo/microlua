@@ -1,18 +1,9 @@
 [submodule "lua"]
 	path = src/lua
 	url = https://github.com/SongZihui-sudo/lua.git
-[submodule "libopencm3"]
-	path = lib/libopencm3
-	url = https://github.com/libopencm3/libopencm3.git
 [submodule "pico-sdk"]
 	path = lib/pico-sdk
 	url = https://github.com/raspberrypi/pico-sdk.git
-[submodule "tinyusb"]
-	path = drivers/tinyusb
-	url =  https://github.com/hathach/tinyusb.git
-[submodule "gear-lib"]
-	path = lib/gear-lib
-	url = https://github.com/gozfree/gear-lib.git
 [submodule "lw-oopc"]
 	path = lib/lw_oopc
 	url = https://github.com/Akagi201/lw_oopc.git
