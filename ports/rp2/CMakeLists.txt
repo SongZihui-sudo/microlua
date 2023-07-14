@@ -21,6 +21,7 @@ INCLUDE_DIRECTORIES(
 
 LIST(APPEND source_rp2 ../../src/lua/onelua.c)
 AUX_SOURCE_DIRECTORY(. source_rp2)
+AUX_SOURCE_DIRECTORY(.././src/interface source_rp2)
 ADD_EXECUTABLE(microlua_rp2 ${source_rp2})
 target_link_libraries(microlua_rp2 pico_stdlib)
 pico_add_extra_outputs(microlua_rp2)
