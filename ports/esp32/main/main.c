@@ -68,7 +68,7 @@ static void lstop( lua_State* L, lua_Debug* ar )
 static void laction( int i )
 {
     int flag = LUA_MASKCALL | LUA_MASKRET | LUA_MASKLINE | LUA_MASKCOUNT;
-    signal( i, SIG_DFL );
+    //signal( i, SIG_DFL );
     lua_sethook( globalL, lstop, flag, 1 );
 }
 
@@ -150,9 +150,9 @@ static int docall( lua_State* L, int narg, int nres )
     lua_pushcfunction( L, msghandler ); /* push message handler */
     lua_insert( L, base );              /* put it under function and args */
     globalL = L;                        /* to be available to 'laction' */
-    signal( SIGINT, laction );          /* set C-signal handler */
+    //signal( SIGINT, laction );          /* set C-signal handler */
     status = lua_pcall( L, narg, nres, base );
-    signal( SIGINT, SIG_DFL ); /* reset C-signal handler */
+    //signal( SIGINT, SIG_DFL ); /* reset C-signal handler */
     lua_remove( L, base );     /* remove message handler from the stack */
     return status;
 }

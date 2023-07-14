@@ -14,5 +14,5 @@
 	path = lib/gear-lib
 	url = https://github.com/gozfree/gear-lib.git
 [submodule "lw-oopc"]
-	path = lib/lw-oopc
+	path = lib/lw_oopc
 	url = https://github.com/Akagi201/lw_oopc.git

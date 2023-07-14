@@ -1,21 +1,22 @@
-#include "pin.h"
+#include "stm_pin.h"
 
-void pin_table_set_index(struct pin_table* self, size_t index, bool value)
+void pin_value( pin* self, bool value ) {}
+
+void pin_on( pin* self ) {}
+
+void pin_off( pin* self ) {}
+
+void pin_init( pin* self, int index )
 {
-
+    assert( self );
+    self->mIndex = index;
+    self->mValue = 0;
 }
 
-void pin_value(struct pin* self, bool value)
-{
-
-}
-
-void pin_on(struct pin* self)
-{
-
-}
-
-void pin_off(struct pin* self)
-{
-    
-}
+CTOR( pico_pin )
+SUPER_CTOR( pin );
+FUNCTION_SETTING( Ipin.value, pin_value );
+FUNCTION_SETTING( Ipin.on, pin_on );
+FUNCTION_SETTING( Ipin.off, pin_off );
+FUNCTION_SETTING( init, pin_init );
+END_CTOR
