@@ -6,7 +6,7 @@ void pin_on( pin* self ) {}
 
 void pin_off( pin* self ) {}
 
-void stm32pin_init( stm32_pin* self, int index )
+void stm32_pin_init( stm32_pin* self, int index )
 {
     assert( self );
     self->pin.mIndex = index;
@@ -18,5 +18,5 @@ SUPER_CTOR( pin );
 FUNCTION_SETTING( Ipin.value, pin_value );
 FUNCTION_SETTING( Ipin.on, pin_on );
 FUNCTION_SETTING( Ipin.off, pin_off );
-FUNCTION_SETTING( init, stm32pin_init );
+FUNCTION_SETTING( init, stm32_pin_init );
 END_CTOR

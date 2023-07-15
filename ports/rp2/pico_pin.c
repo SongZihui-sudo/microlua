@@ -6,11 +6,11 @@ void pin_on( pin* self ) {}
 
 void pin_off( pin* self ) {}
 
-void pin_init( pin* self, int index )
+void pico_pin_init( pico_pin* self, int index )
 {
     assert( self );
-    self->mIndex = index;
-    self->mValue = 0;
+    self->pin.mIndex = index;
+    self->pin.mValue = 0;
 }
 
 CTOR( pico_pin )
@@ -18,5 +18,5 @@ SUPER_CTOR( pin );
 FUNCTION_SETTING( Ipin.value, pin_value );
 FUNCTION_SETTING( Ipin.on, pin_on );
 FUNCTION_SETTING( Ipin.off, pin_off );
-FUNCTION_SETTING( init, pin_init );
+FUNCTION_SETTING( init, pico_pin_init );
 END_CTOR

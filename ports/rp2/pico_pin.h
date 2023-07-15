@@ -1,5 +1,3 @@
-#ifndef C7FF4F38_DAD9_4DE2_9F53_26D0EACE115E
-#define C7FF4F38_DAD9_4DE2_9F53_26D0EACE115E
 #ifndef pico_pin_h
 #define pico_pin_h
 
@@ -13,5 +11,3 @@ CLASS( pico_pin )
 };
 
 #endif
-
-#endif /* C7FF4F38_DAD9_4DE2_9F53_26D0EACE115E */

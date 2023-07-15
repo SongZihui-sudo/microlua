@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <fcntl.h>
 
 #include <signal.h>
 
@@ -18,6 +19,12 @@
 
 #include "lauxlib.h"
 #include "lualib.h"
+
+#include "esp_log.h"
+#include "esp_console.h"
+#include "esp_vfs_dev.h"
+#include "driver/uart.h"
+#include "linenoise/linenoise.h"
 
 #if !defined( LUA_PROGNAME )
 #define LUA_PROGNAME "lua"
@@ -48,51 +55,6 @@ static void setsignal( int sig, void ( *handler )( int ) )
 }
 
 #endif /* } */
-
-/*
-** Hook set by signal function to stop the interpreter.
-*/
-static void lstop( lua_State* L, lua_Debug* ar )
-{
-    ( void )ar;                   /* unused arg. */
-    lua_sethook( L, NULL, 0, 0 ); /* reset hook */
-    luaL_error( L, "interrupted!" );
-}
-
-/*
-** Function to be called at a C signal. Because a C signal cannot
-** just change a Lua state (as there is no proper synchronization),
-** this function only sets a hook that, when called, will stop the
-** interpreter.
-*/
-static void laction( int i )
-{
-    int flag = LUA_MASKCALL | LUA_MASKRET | LUA_MASKLINE | LUA_MASKCOUNT;
-    //signal( i, SIG_DFL );
-    lua_sethook( globalL, lstop, flag, 1 );
-}
-
-static void print_usage( const char* badoption )
-{
-    lua_writestringerror( "%s: ", progname );
-    if ( badoption[1] == 'e' || badoption[1] == 'l' )
-        lua_writestringerror( "'%s' needs argument\n", badoption );
-    else
-        lua_writestringerror( "unrecognized option '%s'\n", badoption );
-    lua_writestringerror(
-    "usage: %s [options] [script [args]]\n"
-    "Available options are:\n"
-    "  -e stat   execute string 'stat'\n"
-    "  -i        enter interactive mode after executing 'script'\n"
-    "  -l mod    require library 'mod' into global 'mod'\n"
-    "  -l g=mod  require library 'mod' into global 'g'\n"
-    "  -v        show version information\n"
-    "  -E        ignore environment variables\n"
-    "  -W        turn warnings on\n"
-    "  --        stop handling options\n"
-    "  -         stop handling options and execute stdin\n",
-    progname );
-}
 
 /*
 ** Prints an error message, adding the program name in front of it
@@ -150,10 +112,8 @@ static int docall( lua_State* L, int narg, int nres )
     lua_pushcfunction( L, msghandler ); /* push message handler */
     lua_insert( L, base );              /* put it under function and args */
     globalL = L;                        /* to be available to 'laction' */
-    //signal( SIGINT, laction );          /* set C-signal handler */
-    status = lua_pcall( L, narg, nres, base );
-    //signal( SIGINT, SIG_DFL ); /* reset C-signal handler */
-    lua_remove( L, base );     /* remove message handler from the stack */
+    status  = lua_pcall( L, narg, nres, base );
+    lua_remove( L, base ); /* remove message handler from the stack */
     return status;
 }
 
@@ -161,238 +121,6 @@ static void print_version( void )
 {
     lua_writestring( LUA_COPYRIGHT, strlen( LUA_COPYRIGHT ) );
     lua_writeline();
-}
-
-/*
-** Create the 'arg' table, which stores all arguments from the
-** command line ('argv'). It should be aligned so that, at index 0,
-** it has 'argv[script]', which is the script name. The arguments
-** to the script (everything after 'script') go to positive indices;
-** other arguments (before the script name) go to negative indices.
-** If there is no script name, assume interpreter's name as base.
-** (If there is no interpreter's name either, 'script' is -1, so
-** table sizes are zero.)
-*/
-static void createargtable( lua_State* L, char** argv, int argc, int script )
-{
-    int i, narg;
-    narg = argc - ( script + 1 ); /* number of positive indices */
-    lua_createtable( L, narg, script + 1 );
-    for ( i = 0; i < argc; i++ )
-    {
-        lua_pushstring( L, argv[i] );
-        lua_rawseti( L, -2, i - script );
-    }
-    lua_setglobal( L, "arg" );
-}
-
-static int dochunk( lua_State* L, int status )
-{
-    if ( status == LUA_OK )
-        status = docall( L, 0, 0 );
-    return report( L, status );
-}
-
-static int dofile( lua_State* L, const char* name )
-{
-    return dochunk( L, luaL_loadfile( L, name ) );
-}
-
-static int dostring( lua_State* L, const char* s, const char* name )
-{
-    return dochunk( L, luaL_loadbuffer( L, s, strlen( s ), name ) );
-}
-
-/*
-** Receives 'globname[=modname]' and runs 'globname = require(modname)'.
-** If there is no explicit modname and globname contains a '-', cut
-** the sufix after '-' (the "version") to make the global name.
-*/
-static int dolibrary( lua_State* L, char* globname )
-{
-    int status;
-    char* suffix  = NULL;
-    char* modname = strchr( globname, '=' );
-    if ( modname == NULL )
-    {                                             /* no explicit name? */
-        modname = globname;                       /* module name is equal to global name */
-        suffix  = strchr( modname, *LUA_IGMARK ); /* look for a suffix mark */
-    }
-    else
-    {
-        *modname = '\0'; /* global name ends here */
-        modname++;       /* module name starts after the '=' */
-    }
-    lua_getglobal( L, "require" );
-    lua_pushstring( L, modname );
-    status = docall( L, 1, 1 ); /* call 'require(modname)' */
-    if ( status == LUA_OK )
-    {
-        if ( suffix != NULL )         /* is there a suffix mark? */
-            *suffix = '\0';           /* remove sufix from global name */
-        lua_setglobal( L, globname ); /* globname = require(modname) */
-    }
-    return report( L, status );
-}
-
-/*
-** Push on the stack the contents of table 'arg' from 1 to #arg
-*/
-static int pushargs( lua_State* L )
-{
-    int i, n;
-    if ( lua_getglobal( L, "arg" ) != LUA_TTABLE )
-        luaL_error( L, "'arg' is not a table" );
-    n = ( int )luaL_len( L, -1 );
-    luaL_checkstack( L, n + 3, "too many arguments to script" );
-    for ( i = 1; i <= n; i++ )
-        lua_rawgeti( L, -i, i );
-    lua_remove( L, -i ); /* remove table from the stack */
-    return n;
-}
-
-static int handle_script( lua_State* L, char** argv )
-{
-    int status;
-    const char* fname = argv[0];
-    if ( strcmp( fname, "-" ) == 0 && strcmp( argv[-1], "--" ) != 0 )
-        fname = NULL; /* stdin */
-    status = luaL_loadfile( L, fname );
-    if ( status == LUA_OK )
-    {
-        int n  = pushargs( L ); /* push arguments to script */
-        status = docall( L, n, LUA_MULTRET );
-    }
-    return report( L, status );
-}
-
-/* bits of various argument indicators in 'args' */
-#define has_error 1 /* bad option */
-#define has_i 2     /* -i */
-#define has_v 4     /* -v */
-#define has_e 8     /* -e */
-#define has_E 16    /* -E */
-
-/*
-** Traverses all arguments from 'argv', returning a mask with those
-** needed before running any Lua code or an error code if it finds any
-** invalid argument. In case of error, 'first' is the index of the bad
-** argument.  Otherwise, 'first' is -1 if there is no program name,
-** 0 if there is no script name, or the index of the script name.
-*/
-static int collectargs( char** argv, int* first )
-{
-    int args = 0;
-    int i;
-    if ( argv[0] != NULL )
-    {                           /* is there a program name? */
-        if ( argv[0][0] )       /* not empty? */
-            progname = argv[0]; /* save it */
-    }
-    else
-    { /* no program name */
-        *first = -1;
-        return 0;
-    }
-    for ( i = 1; argv[i] != NULL; i++ )
-    { /* handle arguments */
-        *first = i;
-        if ( argv[i][0] != '-' ) /* not an option? */
-            return args;         /* stop handling options */
-        switch ( argv[i][1] )
-        {                                 /* else check option */
-            case '-':                     /* '--' */
-                if ( argv[i][2] != '\0' ) /* extra characters after '--'? */
-                    return has_error;     /* invalid option */
-                *first = i + 1;
-                return args;
-            case '\0':       /* '-' */
-                return args; /* script "name" is '-' */
-            case 'E':
-                if ( argv[i][2] != '\0' ) /* extra characters? */
-                    return has_error;     /* invalid option */
-                args |= has_E;
-                break;
-            case 'W':
-                if ( argv[i][2] != '\0' ) /* extra characters? */
-                    return has_error;     /* invalid option */
-                break;
-            case 'i':
-                args |= has_i; /* (-i implies -v) */ /* FALLTHROUGH */
-            case 'v':
-                if ( argv[i][2] != '\0' ) /* extra characters? */
-                    return has_error;     /* invalid option */
-                args |= has_v;
-                break;
-            case 'e':
-                args |= has_e; /* FALLTHROUGH */
-            case 'l':          /* both options need an argument */
-                if ( argv[i][2] == '\0' )
-                {        /* no concatenated argument? */
-                    i++; /* try next 'argv' */
-                    if ( argv[i] == NULL || argv[i][0] == '-' )
-                        return has_error; /* no next argument or it is another option */
-                }
-                break;
-            default: /* invalid option */
-                return has_error;
-        }
-    }
-    *first = 0; /* no script name */
-    return args;
-}
-
-/*
-** Processes options 'e' and 'l', which involve running Lua code, and
-** 'W', which also affects the state.
-** Returns 0 if some code raises an error.
-*/
-static int runargs( lua_State* L, char** argv, int n )
-{
-    int i;
-    for ( i = 1; i < n; i++ )
-    {
-        int option = argv[i][1];
-        lua_assert( argv[i][0] == '-' ); /* already checked */
-        switch ( option )
-        {
-            case 'e':
-            case 'l':
-            {
-                int status;
-                char* extra = argv[i] + 2; /* both options need an argument */
-                if ( *extra == '\0' )
-                    extra = argv[++i];
-                lua_assert( extra != NULL );
-                status = ( option == 'e' ) ? dostring( L, extra, "=(command line)" ) :
-                                             dolibrary( L, extra );
-                if ( status != LUA_OK )
-                    return 0;
-                break;
-            }
-            case 'W':
-                lua_warning( L, "@on", 0 ); /* warnings on */
-                break;
-        }
-    }
-    return 1;
-}
-
-static int handle_luainit( lua_State* L )
-{
-    const char* name = "=" LUA_INITVARVERSION;
-    const char* init = getenv( name + 1 );
-    if ( init == NULL )
-    {
-        name = "=" LUA_INIT_VAR;
-        init = getenv( name + 1 ); /* try alternative name */
-    }
-    if ( init == NULL )
-        return LUA_OK;
-    else if ( init[0] == '@' )
-        return dofile( L, init + 1 );
-    else
-        return dostring( L, init, name );
 }
 
 /*
@@ -460,8 +188,8 @@ static int handle_luainit( lua_State* L )
 #define lua_readline( L, b, p )                                                            \
     ( ( void )L,                                                                           \
       fputs( p, stdout ),                                                                  \
-      fflush( stdout ),                         /* show prompt */                          \
-      fgets( b, LUA_MAXINPUT, stdin ) != NULL ) /* get line */
+      fflush( stdout ),        /* show prompt */                                           \
+      linenoise( b ) != NULL ) /* get line */
 #define lua_saveline( L, line )                                                            \
     {                                                                                      \
         ( void )L;                                                                         \
@@ -492,6 +220,78 @@ static const char* get_prompt( lua_State* L, int firstline )
         lua_remove( L, -2 ); /* remove original value */
         return p;
     }
+}
+
+/**
+ ** Initialize the serial console of ESP32
+ ** Using fgets will always get null, so use esp-idf's linnose to read the line
+ ** doc: https://docs.espressif.com/projects/esp-idf/zh_CN/v4.4.2/esp32/api-reference/system/console.html#id1
+ **
+ */
+static void initialize_console( void )
+{
+    /* Disable buffering on stdin */
+    setvbuf( stdin, NULL, _IONBF, 0 );
+
+    /* Minicom, screen, idf_monitor send CR when ENTER key is pressed */
+    esp_vfs_dev_uart_port_set_rx_line_endings( CONFIG_ESP_CONSOLE_UART_NUM, ESP_LINE_ENDINGS_CR );
+    /* Move the caret to the beginning of the next line on '\n' */
+    esp_vfs_dev_uart_port_set_tx_line_endings( CONFIG_ESP_CONSOLE_UART_NUM, ESP_LINE_ENDINGS_CRLF );
+
+    /* Configure UART. Note that REF_TICK is used so that the baud rate remains
+     * correct while APB frequency is changing in light sleep mode.
+     */
+    const uart_config_t uart_config
+    = {.baud_rate = CONFIG_ESP_CONSOLE_UART_BAUDRATE,
+       .data_bits = UART_DATA_8_BITS,
+       .parity    = UART_PARITY_DISABLE,
+       .stop_bits = UART_STOP_BITS_1,
+#if CONFIG_IDF_TARGET_ESP32 || CONFIG_IDF_TARGET_ESP32S2
+       .source_clk = UART_SCLK_REF_TICK,
+#else
+       .source_clk = UART_SCLK_XTAL,
+#endif
+      };
+    /* Install UART driver for interrupt-driven reads and writes */
+    ESP_ERROR_CHECK( uart_driver_install( CONFIG_ESP_CONSOLE_UART_NUM, 256, 0, 0, NULL, 0 ) );
+    ESP_ERROR_CHECK( uart_param_config( CONFIG_ESP_CONSOLE_UART_NUM, &uart_config ) );
+
+    /* Tell VFS to use UART driver */
+    esp_vfs_dev_uart_use_driver( CONFIG_ESP_CONSOLE_UART_NUM );
+
+    /* Initialize the console */
+    esp_console_config_t console_config
+    = {.max_cmdline_args   = 8,
+       .max_cmdline_length = 256,
+#if CONFIG_LOG_COLORS
+       .hint_color = atoi( LOG_COLOR_CYAN )
+#endif
+      };
+    ESP_ERROR_CHECK( esp_console_init( &console_config ) );
+
+    /* Configure linenoise line completion library */
+    /* Enable multiline editing. If not set, long commands will scroll within
+     * single line.
+     */
+    linenoiseSetMultiLine( 1 );
+
+    /* Tell linenoise where to get command completions and hints */
+    linenoiseSetCompletionCallback( &esp_console_get_completion );
+    linenoiseSetHintsCallback( ( linenoiseHintsCallback* )&esp_console_get_hint );
+
+    /* Set command history size */
+    linenoiseHistorySetMaxLen( 100 );
+
+    /* Set command maximum length */
+    linenoiseSetMaxLineLen( console_config.max_cmdline_length );
+
+    /* Don't return empty lines */
+    linenoiseAllowEmpty( false );
+
+#if CONFIG_STORE_HISTORY
+    /* Load command history from filesystem */
+    linenoiseHistoryLoad( HISTORY_PATH );
+#endif
 }
 
 /* mark in error messages for incomplete statements */
@@ -527,8 +327,9 @@ static int pushline( lua_State* L, int firstline )
     char* b = buffer;
     size_t l;
     const char* prmt = get_prompt( L, firstline );
-    int readstatus   = lua_readline( L, b, prmt );
-    if ( readstatus == 0 )
+    // int readstatus   = lua_readline( L, b, prmt );
+    b = linenoise( prmt );
+    if ( b == NULL )
         return 0;    /* no input (prompt will be popped by caller) */
     lua_pop( L, 1 ); /* remove prompt */
     l = strlen( b );
@@ -651,58 +452,24 @@ static void doREPL( lua_State* L )
 */
 static int pmain( lua_State* L )
 {
-    int argc    = ( int )lua_tointeger( L, 1 );
-    char** argv = ( char** )lua_touserdata( L, 2 );
-    int script;
-    int args   = collectargs( argv, &script );
-    int optlim = ( script > 0 ) ? script : argc; /* first argv not an option */
-    luaL_checkversion( L ); /* check that interpreter has correct version */
-    if ( args == has_error )
-    {                                /* bad arg? */
-        print_usage( argv[script] ); /* 'script' has index of bad arg. */
-        return 0;
-    }
-    if ( args & has_v ) /* option '-v'? */
+    luaL_checkversion( L );       /* check that interpreter has correct version */
+    luaL_openlibs( L );           /* open standard libraries */
+    lua_gc( L, LUA_GCRESTART );   /* start GC... */
+    lua_gc( L, LUA_GCGEN, 0, 0 ); /* ...in generational mode */
+    if ( lua_stdin_is_tty() )
+    { /* running in interactive mode? */
         print_version();
-    if ( args & has_E )
-    {                            /* option '-E'? */
-        lua_pushboolean( L, 1 ); /* signal for libraries to ignore env. vars. */
-        lua_setfield( L, LUA_REGISTRYINDEX, "LUA_NOENV" );
+        doREPL( L ); /* do read-eval-print loop */
+        printf( "1" );
     }
-    luaL_openlibs( L );                      /* open standard libraries */
-    createargtable( L, argv, argc, script ); /* create table 'arg' */
-    lua_gc( L, LUA_GCRESTART );              /* start GC... */
-    lua_gc( L, LUA_GCGEN, 0, 0 );            /* ...in generational mode */
-    if ( !( args & has_E ) )
-    {                                        /* no option '-E'? */
-        if ( handle_luainit( L ) != LUA_OK ) /* run LUA_INIT */
-            return 0;                        /* error running LUA_INIT */
-    }
-    if ( !runargs( L, argv, optlim ) ) /* execute arguments -e and -l */
-        return 0;                      /* something failed */
-    if ( script > 0 )
-    { /* execute main script (if there is one) */
-        if ( handle_script( L, argv + script ) != LUA_OK )
-            return 0; /* interrupt in case of error */
-    }
-    if ( args & has_i ) /* -i option? */
-        doREPL( L );    /* do read-eval-print loop */
-    else if ( script < 1 && !( args & ( has_e | has_v ) ) )
-    { /* no active option? */
-        if ( lua_stdin_is_tty() )
-        { /* running in interactive mode? */
-            print_version();
-            doREPL( L ); /* do read-eval-print loop */
-        }
-        else
-            dofile( L, NULL ); /* executes stdin as a file */
-    }
+    printf( "2" );
     lua_pushboolean( L, 1 ); /* signal no errors */
     return 1;
 }
 
 int app_main( int argc, char** argv )
 {
+    initialize_console();
     int status, result;
     lua_State* L = luaL_newstate(); /* create state */
     if ( L == NULL )
