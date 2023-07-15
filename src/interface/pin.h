@@ -20,14 +20,14 @@ ABS_CLASS( pin )
 {
     int mIndex;
     bool mValue;
-    void ( *init )( pin * t, bool index );
+    void ( *init )( pin*, bool );
 };
 
 INTERFACE( Ipin )
 {
-    void ( *value )( pin * t, bool value );
-    void ( *on )( pin * t );
-    void ( *off )( pin * t );
+    void ( *value )( pin*, bool );
+    void ( *on )( pin* );
+    void ( *off )( pin* );
 };
 
 #endif

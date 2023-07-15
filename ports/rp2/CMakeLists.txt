@@ -11,13 +11,13 @@ pico_sdk_init()
 
 # rest of your project
 INCLUDE_DIRECTORIES(
+    .
     ../../lib/lw_oopc/
     ../../src/lua
     ../../src/interface
-    .
     ./board/pico
     ../esp32/board/airesp32c3 
-    ../stm32/board/air32f103)
+    ../stm32/board/stm32f103c8t6)
 
 LIST(APPEND source_rp2 ../../src/lua/onelua.c)
 AUX_SOURCE_DIRECTORY(. source_rp2)

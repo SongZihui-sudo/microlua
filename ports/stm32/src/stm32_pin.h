@@ -3,11 +3,11 @@
 
 #include "pin.h"
 
-CLASS( pico_pin )
+CLASS( stm32_pin )
 {
     EXTENDS( pin );
     IMPLEMENTS( Ipin );
-    void ( *init )( pico_pin*, int );
+    void ( *init )( stm32_pin*, int );
 };
 
 #endif

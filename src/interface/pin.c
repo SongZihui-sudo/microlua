@@ -1,7 +1,7 @@
 #include "pin.h"
 #include <assert.h>
 
-void pin_init( pin* self, int index )
+void pin_init( pin* self, bool index )
 {
     assert( self );
     self->mIndex = index;

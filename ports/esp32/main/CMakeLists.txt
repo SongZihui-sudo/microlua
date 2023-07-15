@@ -4,7 +4,7 @@ LIST( APPEND include_esp32
     ../../../src/interface
     ../../rp2/board/pico
     ./../board/airesp32c3 
-    ../../stm32/board/air32f103)
+    ../../stm32/board/stm32f103c8t6)
 
 LIST(APPEND source_esp32  main.c ../../../src/lua/onelua.c ../../../src/interface/pin.c esp32_pin.c)
 
