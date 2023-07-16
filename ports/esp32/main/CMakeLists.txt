@@ -1,10 +1,7 @@
 LIST( APPEND include_esp32
     ../../../lib/lw_oopc
     ../../../src/lua
-    ../../../src/interface
-    ../../rp2/board/pico
-    ./../board/airesp32c3 
-    ../../stm32/board/stm32f103c8t6)
+    ../../../src/interface)
 
 LIST(APPEND source_esp32  main.c ../../../src/lua/onelua.c ../../../src/interface/pin.c esp32_pin.c)
 

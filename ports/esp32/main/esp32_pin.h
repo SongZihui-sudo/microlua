@@ -7,7 +7,10 @@ CLASS( esp32_pin )
 {
     EXTENDS( pin );
     IMPLEMENTS( Ipin );
-    void ( *init )( esp32_pin*, int );
+    void ( *init )( esp32_pin*, bool );
+    void ( *value )( esp32_pin*, bool );
+    void ( *on )( esp32_pin* );
+    void ( *off )( esp32_pin* );
 };
 
 #endif
