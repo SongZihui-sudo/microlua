@@ -25,6 +25,9 @@
 #include "esp_vfs_dev.h"
 #include "driver/uart.h"
 #include "linenoise/linenoise.h"
+#include "esp_vfs_fat.h"
+#include "nvs.h"
+#include "nvs_flash.h"
 
 #if !defined( LUA_PROGNAME )
 #define LUA_PROGNAME "lua"
@@ -34,11 +37,15 @@
 #define LUA_INIT_VAR "LUA_INIT"
 #endif
 
+#define CONFIG_STORE_HISTORY
+
 #define LUA_INITVARVERSION LUA_INIT_VAR LUA_VERSUFFIX
 
 static lua_State* globalL = NULL;
 
 static const char* progname = LUA_PROGNAME;
+
+static const char* TAG = "microlua";
 
 #if defined( LUA_USE_POSIX ) /* { */
 
@@ -222,6 +229,36 @@ static const char* get_prompt( lua_State* L, int firstline )
     }
 }
 
+/* Console command history can be stored to and loaded from a file.
+ * The easiest way to do this is to use FATFS filesystem on top of
+ * wear_levelling library.
+ */
+#if defined (CONFIG_STORE_HISTORY)
+
+static void initialize_filesystem(void)
+{
+    static wl_handle_t wl_handle = WL_INVALID_HANDLE;
+    esp_vfs_fat_mount_config_t mount_config;
+    mount_config.format_if_mount_failed  = true;
+    mount_config.max_files = 4;
+    esp_err_t err = esp_vfs_fat_spiflash_mount_rw_wl( "/data", "storage", &mount_config, &wl_handle);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to mount FATFS (%s)", esp_err_to_name(err));
+        return;
+    }
+}
+#endif
+
+static void initialize_nvs(void)
+{
+    esp_err_t err = nvs_flash_init();
+    if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ESP_ERROR_CHECK( nvs_flash_erase() );
+        err = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK(err);
+}
+
 /**
  ** Initialize the serial console of ESP32
  ** Using fgets will always get null, so use esp-idf's linnose to read the line
@@ -230,68 +267,62 @@ static const char* get_prompt( lua_State* L, int firstline )
  */
 static void initialize_console( void )
 {
+    /* Drain stdout before reconfiguring it */
+    fflush(stdout);
+    fsync(fileno(stdout));
+
     /* Disable buffering on stdin */
-    setvbuf( stdin, NULL, _IONBF, 0 );
+    setvbuf(stdin, NULL, _IONBF, 0);
 
     /* Minicom, screen, idf_monitor send CR when ENTER key is pressed */
-    esp_vfs_dev_uart_port_set_rx_line_endings( CONFIG_ESP_CONSOLE_UART_NUM, ESP_LINE_ENDINGS_CR );
+    esp_vfs_dev_uart_port_set_rx_line_endings(CONFIG_ESP_CONSOLE_UART_NUM, ESP_LINE_ENDINGS_CR);
     /* Move the caret to the beginning of the next line on '\n' */
-    esp_vfs_dev_uart_port_set_tx_line_endings( CONFIG_ESP_CONSOLE_UART_NUM, ESP_LINE_ENDINGS_CRLF );
+    esp_vfs_dev_uart_port_set_tx_line_endings(CONFIG_ESP_CONSOLE_UART_NUM, ESP_LINE_ENDINGS_CRLF);
 
     /* Configure UART. Note that REF_TICK is used so that the baud rate remains
      * correct while APB frequency is changing in light sleep mode.
      */
-    const uart_config_t uart_config
-    = {.baud_rate = CONFIG_ESP_CONSOLE_UART_BAUDRATE,
-       .data_bits = UART_DATA_8_BITS,
-       .parity    = UART_PARITY_DISABLE,
-       .stop_bits = UART_STOP_BITS_1,
-#if CONFIG_IDF_TARGET_ESP32 || CONFIG_IDF_TARGET_ESP32S2
-       .source_clk = UART_SCLK_REF_TICK,
-#else
-       .source_clk = UART_SCLK_XTAL,
+    const uart_config_t uart_config = {
+            .baud_rate = CONFIG_ESP_CONSOLE_UART_BAUDRATE,
+            .data_bits = UART_DATA_8_BITS,
+            .parity = UART_PARITY_DISABLE,
+            .stop_bits = UART_STOP_BITS_1,
+#if SOC_UART_SUPPORT_REF_TICK
+        .source_clk = UART_SCLK_REF_TICK,
+#elif SOC_UART_SUPPORT_XTAL_CLK
+        .source_clk = UART_SCLK_XTAL,
 #endif
-      };
+    };
     /* Install UART driver for interrupt-driven reads and writes */
-    ESP_ERROR_CHECK( uart_driver_install( CONFIG_ESP_CONSOLE_UART_NUM, 256, 0, 0, NULL, 0 ) );
-    ESP_ERROR_CHECK( uart_param_config( CONFIG_ESP_CONSOLE_UART_NUM, &uart_config ) );
+    ESP_ERROR_CHECK( uart_driver_install(CONFIG_ESP_CONSOLE_UART_NUM,
+            256, 0, 0, NULL, 0) );
+    ESP_ERROR_CHECK( uart_param_config(CONFIG_ESP_CONSOLE_UART_NUM, &uart_config) );
 
     /* Tell VFS to use UART driver */
-    esp_vfs_dev_uart_use_driver( CONFIG_ESP_CONSOLE_UART_NUM );
+    esp_vfs_dev_uart_use_driver(CONFIG_ESP_CONSOLE_UART_NUM);
 
     /* Initialize the console */
-    esp_console_config_t console_config
-    = {.max_cmdline_args   = 8,
-       .max_cmdline_length = 256,
+    esp_console_config_t console_config = {
+            .max_cmdline_args = 8,
+            .max_cmdline_length = 256,
 #if CONFIG_LOG_COLORS
-       .hint_color = atoi( LOG_COLOR_CYAN )
+            .hint_color = atoi(LOG_COLOR_CYAN)
 #endif
-      };
-    ESP_ERROR_CHECK( esp_console_init( &console_config ) );
+    };
+    ESP_ERROR_CHECK( esp_console_init(&console_config) );
 
     /* Configure linenoise line completion library */
     /* Enable multiline editing. If not set, long commands will scroll within
      * single line.
      */
-    linenoiseSetMultiLine( 1 );
+    linenoiseSetMultiLine(1);
 
     /* Tell linenoise where to get command completions and hints */
-    linenoiseSetCompletionCallback( &esp_console_get_completion );
-    linenoiseSetHintsCallback( ( linenoiseHintsCallback* )&esp_console_get_hint );
+    linenoiseSetCompletionCallback(&esp_console_get_completion);
+    linenoiseSetHintsCallback((linenoiseHintsCallback*) &esp_console_get_hint);
 
-    /* Set command history size */
-    linenoiseHistorySetMaxLen( 100 );
-
-    /* Set command maximum length */
-    linenoiseSetMaxLineLen( console_config.max_cmdline_length );
-
-    /* Don't return empty lines */
-    linenoiseAllowEmpty( false );
-
-#if CONFIG_STORE_HISTORY
-    /* Load command history from filesystem */
-    linenoiseHistoryLoad( HISTORY_PATH );
-#endif
+    /* return empty lines */
+    linenoiseAllowEmpty(false);
 }
 
 /* mark in error messages for incomplete statements */
@@ -469,6 +500,13 @@ static int pmain( lua_State* L )
 
 int app_main( int argc, char** argv )
 {
+    initialize_nvs();
+#if defined (CONFIG_STORE_HISTORY)
+    initialize_filesystem();
+    ESP_LOGI(TAG, "Command history enabled");
+#else
+    ESP_LOGI(TAG, "Command history disabled");
+#endif
     initialize_console();
     int status, result;
     lua_State* L = luaL_newstate(); /* create state */
