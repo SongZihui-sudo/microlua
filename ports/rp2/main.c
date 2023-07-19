@@ -20,6 +20,7 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
+#include "tusb.h"
 
 #if !defined(LUA_PROGNAME)
 #define LUA_PROGNAME		"lua"
@@ -623,51 +624,23 @@ static void doREPL (lua_State *L) {
 ** Reads the options and handles them all.
 */
 static int pmain (lua_State *L) {
-  int argc = (int)lua_tointeger(L, 1);
-  char **argv = (char **)lua_touserdata(L, 2);
-  int script;
-  int args = collectargs(argv, &script);
-  int optlim = (script > 0) ? script : argc; /* first argv not an option */
-  luaL_checkversion(L);  /* check that interpreter has correct version */
-  if (args == has_error) {  /* bad arg? */
-    print_usage(argv[script]);  /* 'script' has index of bad arg. */
-    return 0;
-  }
-  if (args & has_v)  /* option '-v'? */
-    print_version();
-  if (args & has_E) {  /* option '-E'? */
-    lua_pushboolean(L, 1);  /* signal for libraries to ignore env. vars. */
-    lua_setfield(L, LUA_REGISTRYINDEX, "LUA_NOENV");
-  }
-  luaL_openlibs(L);  /* open standard libraries */
-  createargtable(L, argv, argc, script);  /* create table 'arg' */
-  lua_gc(L, LUA_GCRESTART);  /* start GC... */
-  lua_gc(L, LUA_GCGEN, 0, 0);  /* ...in generational mode */
-  if (!(args & has_E)) {  /* no option '-E'? */
-    if (handle_luainit(L) != LUA_OK)  /* run LUA_INIT */
-      return 0;  /* error running LUA_INIT */
-  }
-  if (!runargs(L, argv, optlim))  /* execute arguments -e and -l */
-    return 0;  /* something failed */
-  if (script > 0) {  /* execute main script (if there is one) */
-    if (handle_script(L, argv + script) != LUA_OK)
-      return 0;  /* interrupt in case of error */
-  }
-  if (args & has_i)  /* -i option? */
-    doREPL(L);  /* do read-eval-print loop */
-  else if (script < 1 && !(args & (has_e | has_v))) { /* no active option? */
-    if (lua_stdin_is_tty()) {  /* running in interactive mode? */
+  luaL_checkversion( L );       /* check that interpreter has correct version */
+  luaL_openlibs( L );           /* open standard libraries */
+  lua_gc( L, LUA_GCRESTART );   /* start GC... */
+  lua_gc( L, LUA_GCGEN, 0, 0 ); /* ...in generational mode */
+  if ( lua_stdin_is_tty() )
+  { /* running in interactive mode? */
       print_version();
-      doREPL(L);  /* do read-eval-print loop */
-    }
-    else dofile(L, NULL);  /* executes stdin as a file */
+      doREPL( L ); /* do read-eval-print loop */
   }
-  lua_pushboolean(L, 1);  /* signal no errors */
+  lua_pushboolean( L, 1 ); /* signal no errors */
   return 1;
 }
 
 
 int main (int argc, char **argv) {
+  stdio_init_all();
+  while (!tud_cdc_connected()) { sleep_ms(100);  }
   int status, result;
   lua_State *L = luaL_newstate();  /* create state */
   if (L == NULL) {

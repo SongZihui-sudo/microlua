@@ -491,9 +491,7 @@ static int pmain( lua_State* L )
     { /* running in interactive mode? */
         print_version();
         doREPL( L ); /* do read-eval-print loop */
-        printf( "1" );
     }
-    printf( "2" );
     lua_pushboolean( L, 1 ); /* signal no errors */
     return 1;
 }
