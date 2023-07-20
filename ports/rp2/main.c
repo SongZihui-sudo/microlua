@@ -20,6 +20,8 @@
 #include "lualib.h"
 
 #include "tusb.h"
+#include "pico_hal.h"
+#include "stdinit.h"
 
 #if !defined( LUA_PROGNAME )
 #define LUA_PROGNAME "lua"
@@ -683,13 +685,27 @@ static int pmain( lua_State* L )
     return 1;
 }
 
+static int initialize_filesystem()
+{
+    if (pico_mount(true) < 0) {
+        printf("Mount failed\n");
+        return -1;
+    } 
+    struct pico_fsstat_t stat;
+    pico_fsstat(&stat);
+    printf("FS: blocks %d, block size %d, used %d\n", (int)stat.block_count, (int)stat.block_size,
+        (int)stat.blocks_used);
+    return 0;
+}
+
 int main( int argc, char** argv )
 {
-    stdio_init_all();
+    stdio_init();
     while ( !tud_cdc_connected() )
     {
         sleep_ms( 100 );
     }
+    initialize_filesystem();
     int status, result;
     lua_State* L = luaL_newstate(); /* create state */
     if ( L == NULL )
