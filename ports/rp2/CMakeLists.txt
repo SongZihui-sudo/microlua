@@ -12,6 +12,7 @@ pico_sdk_init()
 # rest of your project
 INCLUDE_DIRECTORIES(
     .
+    ../../lib/pico-sdk/lib/tinyusb/
     ../../lib/lw_oopc/
     ../../src/lua
     ../../src/interface)
