@@ -7,15 +7,6 @@
 [submodule "lw-oopc"]
 	path = lib/lw_oopc
 	url = https://github.com/Akagi201/lw_oopc.git
-[submodule "gear-lib"]
-	path = lib/gear-lib
-	url =  https://github.com/gozfree/gear-lib.git
-[submodule "littlefs-lib"]
-	path = lib/submodule
-	url = https://github.com/lurk101/littlefs-lib.git
-[submodule "stdinit-lib"]
-	path = lib/stdinit-lib
-	url = https://github.com/lurk101/stdinit-lib.git
 [submodule "lib/gear-lib"]
 	path = lib/gear-lib
 	url = https://github.com/gozfree/gear-lib.git
