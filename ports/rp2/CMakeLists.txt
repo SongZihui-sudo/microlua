@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.27)
+cmake_minimum_required(VERSION 3.20)
 
 # initialize pico-sdk from submodule
 # note: this must happen before project()
@@ -24,6 +24,8 @@ AUX_SOURCE_DIRECTORY(. source_rp2)
 AUX_SOURCE_DIRECTORY(../../lib/stdinit-lib/ source_rp2)
 AUX_SOURCE_DIRECTORY(../../lib/littlefs-lib/ source_rp2)
 AUX_SOURCE_DIRECTORY(.././src/interface source_rp2)
+
+add_compile_definitions(LUA_USE_RP2040=1)
 
 ADD_EXECUTABLE(microlua_rp2 ${source_rp2})
 target_link_libraries(microlua_rp2 pico_stdlib)

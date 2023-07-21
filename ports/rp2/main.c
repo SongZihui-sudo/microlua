@@ -687,14 +687,17 @@ static int pmain( lua_State* L )
 
 static int initialize_filesystem()
 {
-    if (pico_mount(true) < 0) {
-        printf("Mount failed\n");
+    if ( pico_mount( true ) < 0 )
+    {
+        printf( "Mount failed\n" );
         return -1;
-    } 
+    }
     struct pico_fsstat_t stat;
-    pico_fsstat(&stat);
-    printf("FS: blocks %d, block size %d, used %d\n", (int)stat.block_count, (int)stat.block_size,
-        (int)stat.blocks_used);
+    pico_fsstat( &stat );
+    printf( "FS: blocks %d, block size %d, used %d\n",
+            ( int )stat.block_count,
+            ( int )stat.block_size,
+            ( int )stat.blocks_used );
     return 0;
 }
 
