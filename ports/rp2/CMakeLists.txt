@@ -21,9 +21,9 @@ INCLUDE_DIRECTORIES(
 
 LIST(APPEND source_rp2 ../../src/lua/onelua.c)
 AUX_SOURCE_DIRECTORY(. source_rp2)
+AUX_SOURCE_DIRECTORY(../../src/interface source_rp2)
 AUX_SOURCE_DIRECTORY(../../lib/stdinit-lib/ source_rp2)
 AUX_SOURCE_DIRECTORY(../../lib/littlefs-lib/ source_rp2)
-AUX_SOURCE_DIRECTORY(.././src/interface source_rp2)
 
 add_compile_definitions(LUA_USE_RP2040=1)
 

@@ -7,6 +7,8 @@
 #include "lfs.h"
 #include "pico_hal.h"
 
+#define l_seeknum __int64_t
+
 static int io_open( lua_State* L )
 {
     const char* filename = luaL_checkstring( L, 1 );
@@ -67,7 +69,7 @@ static int f_lines( lua_State* L )
 
 static int f_flush( lua_State* L )
 {
-    return luaL_fileresult( L, pico_fflush( tofile( L ) ) == 0, NULL );
+    return luaL_fileresult( L, pico_fflush( ( int )tofile( L ) ) == 0, NULL );
 }
 
 static int f_seek( lua_State* L )
@@ -79,7 +81,7 @@ static int f_seek( lua_State* L )
     lua_Integer p3                       = luaL_optinteger( L, 3, 0 );
     l_seeknum offset                     = ( l_seeknum )p3;
     luaL_argcheck( L, ( lua_Integer )offset == p3, 3, "not an integer in proper range" );
-    op = pico_lseek( ( lfs_file_t* )f, offset, mode[op] );
+    op = pico_lseek( ( int )f, offset, mode[op] );
     if ( l_unlikely( op ) )
         return luaL_fileresult( L, 0, NULL ); /* error */
     else
