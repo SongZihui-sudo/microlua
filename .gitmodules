@@ -13,3 +13,6 @@
 [submodule "lib/stdinit-lib"]
 	path = lib/stdinit-lib
 	url = https://github.com/lurk101/stdinit-lib.git
+[submodule "tool/CSerialPort"]
+	path = tool/CSerialPort
+	url = https://github.com/itas109/CSerialPort.git
