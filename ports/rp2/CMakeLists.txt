@@ -16,10 +16,10 @@ INCLUDE_DIRECTORIES(
     ../../lib/littlefs-lib
     ../../lib/stdinit-lib
     ../../lib/lw_oopc
-    ../../src/lua
+    ../../src/
     ../../src/interface)
 
-LIST(APPEND source_rp2 ../../src/lua/onelua.c)
+LIST(APPEND source_rp2 ../../src/onelua.c)
 AUX_SOURCE_DIRECTORY(. source_rp2)
 AUX_SOURCE_DIRECTORY(../../src/interface source_rp2)
 AUX_SOURCE_DIRECTORY(../../lib/stdinit-lib/ source_rp2)

@@ -1,6 +1,3 @@
-[submodule "lua"]
-	path = src/lua
-	url = https://github.com/SongZihui-sudo/lua.git
 [submodule "pico-sdk"]
 	path = lib/pico-sdk
 	url = https://github.com/raspberrypi/pico-sdk.git

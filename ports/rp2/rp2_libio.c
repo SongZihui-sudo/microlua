@@ -57,7 +57,7 @@ typedef lfs_luaL_Stream LStream;
 #define L_MODEEXT "b"
 #endif
 
-int l_getc( int f )
+char l_getc( int f )
 {
     char buffer;
     pico_read( f, &buffer, 1 );
