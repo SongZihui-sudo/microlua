@@ -9,6 +9,9 @@ PROJECT(MicroLua)
 # initialize the Raspberry Pi Pico SDK
 pico_sdk_init()
 
+# minimize mode
+set(minimize 1)
+
 # rest of your project
 INCLUDE_DIRECTORIES(
     .
@@ -26,6 +29,13 @@ AUX_SOURCE_DIRECTORY(../../lib/stdinit-lib/ source_rp2)
 AUX_SOURCE_DIRECTORY(../../lib/littlefs-lib/ source_rp2)
 
 add_compile_definitions(LUA_USE_RP2040=1)
+
+if(${minimize} EQUAL 1)
+    add_compile_definitions(Minimize=1)
+    add_compile_options(-Os -ffunction-sections -fdata-sections)
+    add_link_options(-W --data-sections)
+endif()
+
 
 ADD_EXECUTABLE(microlua_rp2 ${source_rp2})
 target_link_libraries(microlua_rp2 pico_stdlib)

@@ -94,6 +94,7 @@
 
 /* standard library  -- not used by luac */
 #ifndef MAKE_LUAC
+#ifndef Minimize
 #include "lbaselib.c"
 #include "lcorolib.c"
 #include "ldblib.c"
@@ -106,6 +107,7 @@
 #include "lstrlib.c"
 #include "ltablib.c"
 #include "lutf8lib.c"
+#endif
 #include "linit.c"
 #endif
 
