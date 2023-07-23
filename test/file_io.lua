@@ -167,7 +167,9 @@ end
 function fsize(file)
     local current = file:seek()   -- get current position
     local size = file:seek("end") -- get file size
-    file:seek("set", current)     -- restore position
+    file:seek("set", 1)           -- restore position
+    current = file:seek()
+    print("current: ", current)
     return size
 end
 

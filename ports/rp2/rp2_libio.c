@@ -684,16 +684,20 @@ static int f_flush( lua_State* L )
 
 static int f_seek( lua_State* L )
 {
-    static const int mode[]              = { SEEK_SET, SEEK_CUR, SEEK_END };
+    static const int mode[]              = { LFS_SEEK_SET, LFS_SEEK_CUR, LFS_SEEK_END };
     static const char* const modenames[] = { "set", "cur", "end", NULL };
     int f                                = tofile( L );
+    lfs_file_t* fp                       = ( lfs_file_t* )f;
     int op                               = luaL_checkoption( L, 2, "cur", modenames );
     lua_Integer p3                       = luaL_optinteger( L, 3, 0 );
     l_seeknum offset                     = ( l_seeknum )p3;
     luaL_argcheck( L, ( lua_Integer )offset == p3, 3, "not an integer in proper range" );
-    op = pico_lseek( f, offset, mode[op] );
-    if ( l_unlikely( op ) )
+    op                 = pico_lseek( f, offset, mode[op] );
+    const char* errmsg = pico_errmsg( op );
+    if ( strcmp( errmsg, "Unknown error" ) )
+    {
         return luaL_fileresult( L, 0, NULL ); /* error */
+    }
     else
     {
         lua_pushinteger( L, ( lua_Integer )pico_tell( f ) );
