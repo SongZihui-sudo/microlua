@@ -70,14 +70,8 @@ typedef lfs_luaL_Stream LStream;
 int l_getc( int f )
 {
     lfs_file_t* fp = ( lfs_file_t* )f;
-    int err;
-    if ( fp->pos > pico_size( f ) )
-    {
-        // file position out of range
-        err = pico_tell( f );
-    }
     char buffer;
-    err = pico_read( f, &buffer, sizeof( char ) );
+    int err            = pico_read( f, &buffer, sizeof( char ) );
     const char* errmsg = pico_errmsg( err );
     if ( !strcmp( errmsg, "Unknown error" ) )
     {
@@ -86,16 +80,11 @@ int l_getc( int f )
     return err;
 }
 
-int l_ungetc( char c, int f ) 
+int l_ungetc( char c, int f )
 {
-    lfs_file_t* fp = ( lfs_file_t* )f;
-    int err;
-    if ( fp->pos > pico_size( f ) )
-    {
-        // file position out of range
-        err = pico_tell( f );
-    }
-    err = pico_write(f, &c, sizeof(char));const char* errmsg = pico_errmsg( err );
+    lfs_file_t* fp     = ( lfs_file_t* )f;
+    int err            = pico_write( f, &c, sizeof( char ) );
+    const char* errmsg = pico_errmsg( err );
     if ( !strcmp( errmsg, "Unknown error" ) )
     {
         return 1;
@@ -130,19 +119,19 @@ int lfs_mode( const char* mode )
 {
     int _mode = 0;
     if ( !strcmp( mode, "w" ) )
-        _mode = LFS_O_WRONLY;
+        _mode = LFS_O_WRONLY | LFS_O_CREAT | LFS_O_TRUNC;
     else if ( !strcmp( mode, "r" ) )
         _mode = LFS_O_RDONLY;
     else if ( !strcmp( mode, "a" ) )
-        _mode = LFS_O_APPEND;
+        _mode = LFS_O_WRONLY | LFS_O_CREAT | LFS_O_APPEND;
     else if ( !strcmp( mode, "w+" ) )
-        _mode = LFS_O_RDWR | LFS_O_CREAT;
+        _mode = LFS_O_RDWR | LFS_O_CREAT | LFS_O_TRUNC;
     else if ( !strcmp( mode, "r+" ) )
         _mode = LFS_O_RDWR;
     else if ( !strcmp( mode, "a+" ) )
         _mode = LFS_O_APPEND | LFS_O_RDWR | LFS_O_CREAT;
     else
-        _mode = -1;
+        _mode = LFS_O_RDONLY;
     return _mode;
 }
 
@@ -447,7 +436,7 @@ static int g_write( lua_State* L, int f, int arg )
         {
             size_t l;
             const char* s = luaL_checklstring( L, arg, &l );
-            status        = status && ( pico_write( f, s, sizeof( char ) * l ) == l );
+            status = status && ( pico_write( f, s, sizeof( char ) * strlen( s ) ) == l );
         }
     }
     if ( l_likely( status ) )
@@ -567,7 +556,7 @@ static int io_pclose( lua_State* L )
 
 static int io_flush( lua_State* L )
 {
-    int res =luaL_fileresult( L, pico_fflush( getiofile( L, IO_OUTPUT ) ) == 0, NULL );
+    int res = luaL_fileresult( L, pico_fflush( getiofile( L, IO_OUTPUT ) ) == 0, NULL );
     return res;
 }
 
@@ -609,8 +598,8 @@ static int io_lines( lua_State* L )
         return 1;
 }
 
-static int io_output( lua_State* L ) 
-{ 
+static int io_output( lua_State* L )
+{
     int res = g_iofile( L, IO_OUTPUT, "w" );
     return res;
 }
