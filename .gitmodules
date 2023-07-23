@@ -16,3 +16,6 @@
 [submodule "tool/CSerialPort"]
 	path = tool/CSerialPort
 	url = https://github.com/itas109/CSerialPort.git
+[submodule "lib/littlefs_nos"]
+	path = lib/littlefs_nos
+	url = https://github.com/chenhaoying/littlefs_nos.git
