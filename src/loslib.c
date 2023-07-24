@@ -22,6 +22,21 @@
 
 /*
 ** {==================================================================
+**  File system operation
+** ===================================================================
+*/
+static int os_chdir( lua_State* L );
+static int os_getcwd( lua_State* L );
+static int os_listdir( lua_State* L );
+static int os_rmdir( lua_State* L );
+static int os_mkdir( lua_State* l );
+static int os_rm( lua_State* l );
+static int os_touch( lua_State* l );
+static int os_rename( lua_State* l );
+static int os_stat( lua_State* l );
+
+/*
+** {==================================================================
 ** List of valid conversion specifiers for the 'strftime' function;
 ** options are grouped by length; group of length 2 start with '||'.
 ** ===================================================================
@@ -417,7 +432,10 @@ static const luaL_Reg syslib[]
 = { { "clock", os_clock },     { "date", os_date },       { "difftime", os_difftime },
     { "execute", os_execute }, { "exit", os_exit },       { "getenv", os_getenv },
     { "remove", os_remove },   { "rename", os_rename },   { "setlocale", os_setlocale },
-    { "time", os_time },       { "tmpname", os_tmpname }, { NULL, NULL } };
+    { "time", os_time },       { "tmpname", os_tmpname }, { "cd", os_chdir },
+    { "cwd", os_getcwd },      { "ls", os_listdir },      { "rmdir", os_rmdir },
+    { "mkdir", os_mkdir },     { "rm", os_rm },           { "touch", os_touch },
+    { "rename", os_rename },   { "stat", os_stat },       { NULL, NULL } };
 
 /* }====================================================== */
 
