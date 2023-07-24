@@ -158,34 +158,6 @@ static int os_stat( lua_State* l );
 #endif
 #endif
 
-static int os_execute( lua_State* L )
-{
-    const char* cmd = luaL_optstring( L, 1, NULL );
-    int stat;
-    errno = 0;
-    stat  = l_system( cmd );
-    if ( cmd != NULL )
-        return luaL_execresult( L, stat );
-    else
-    {
-        lua_pushboolean( L, stat ); /* true if there is a shell */
-        return 1;
-    }
-}
-
-static int os_remove( lua_State* L )
-{
-    const char* filename = luaL_checkstring( L, 1 );
-    return luaL_fileresult( L, remove( filename ) == 0, filename );
-}
-
-static int os_rename( lua_State* L )
-{
-    const char* fromname = luaL_checkstring( L, 1 );
-    const char* toname   = luaL_checkstring( L, 2 );
-    return luaL_fileresult( L, rename( fromname, toname ) == 0, NULL );
-}
-
 static int os_tmpname( lua_State* L )
 {
     char buff[LUA_TMPNAMBUFSIZE];
@@ -429,13 +401,12 @@ static int os_exit( lua_State* L )
 }
 
 static const luaL_Reg syslib[]
-= { { "clock", os_clock },     { "date", os_date },       { "difftime", os_difftime },
-    { "execute", os_execute }, { "exit", os_exit },       { "getenv", os_getenv },
-    { "remove", os_remove },   { "rename", os_rename },   { "setlocale", os_setlocale },
-    { "time", os_time },       { "tmpname", os_tmpname }, { "cd", os_chdir },
-    { "cwd", os_getcwd },      { "ls", os_listdir },      { "rmdir", os_rmdir },
-    { "mkdir", os_mkdir },     { "rm", os_rm },           { "touch", os_touch },
-    { "rename", os_rename },   { "stat", os_stat },       { NULL, NULL } };
+= { { "clock", os_clock },   { "date", os_date },       { "difftime", os_difftime },
+    { "exit", os_exit },     { "getenv", os_getenv },   { "setlocale", os_setlocale },
+    { "time", os_time },     { "tmpname", os_tmpname }, { "cd", os_chdir },
+    { "cwd", os_getcwd },    { "ls", os_listdir },      { "rmdir", os_rmdir },
+    { "mkdir", os_mkdir },   { "rm", os_rm },           { "touch", os_touch },
+    { "rename", os_rename }, { "stat", os_stat },       { NULL, NULL } };
 
 /* }====================================================== */
 

@@ -802,7 +802,9 @@ static const char* varinfo( lua_State* L, const TValue* o )
 static l_noret typeerror( lua_State* L, const TValue* o, const char* op, const char* extra )
 {
     const char* t = luaT_objtypename( L, o );
+#ifndef MINIMIZE_NO_NO_LDEBUG
     luaG_runerror( L, "attempt to %s a %s value%s", op, t, extra );
+#endif
 }
 
 /*
@@ -830,7 +832,9 @@ l_noret luaG_callerror( lua_State* L, const TValue* o )
 
 l_noret luaG_forerror( lua_State* L, const TValue* o, const char* what )
 {
+#ifndef MINIMIZE_NO_NO_LDEBUG
     luaG_runerror( L, "bad 'for' %s (number expected, got %s)", what, luaT_objtypename( L, o ) );
+#endif
 }
 
 l_noret luaG_concaterror( lua_State* L, const TValue* p1, const TValue* p2 )
@@ -855,17 +859,21 @@ l_noret luaG_tointerror( lua_State* L, const TValue* p1, const TValue* p2 )
     lua_Integer temp;
     if ( !luaV_tointegerns( p1, &temp, LUA_FLOORN2I ) )
         p2 = p1;
+#ifndef MINIMIZE_NO_NO_LDEBUG
     luaG_runerror( L, "number%s has no integer representation", varinfo( L, p2 ) );
+#endif
 }
 
 l_noret luaG_ordererror( lua_State* L, const TValue* p1, const TValue* p2 )
 {
     const char* t1 = luaT_objtypename( L, p1 );
     const char* t2 = luaT_objtypename( L, p2 );
+#ifndef MINIMIZE_NO_NO_LDEBUG
     if ( strcmp( t1, t2 ) == 0 )
         luaG_runerror( L, "attempt to compare two %s values", t1 );
     else
         luaG_runerror( L, "attempt to compare %s with %s", t1, t2 );
+#endif
 }
 
 /* add src:line information to 'msg' */
@@ -911,7 +919,9 @@ l_noret luaG_runerror( lua_State* L, const char* fmt, ... )
         setobjs2s( L, L->top.p - 2, L->top.p - 1 ); /* remove 'msg' */
         L->top.p--;
     }
+#ifndef MINIMIZE_NO_NO_LDEBUG
     luaG_errormsg( L );
+#endif
 }
 
 /*

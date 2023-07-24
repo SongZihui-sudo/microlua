@@ -286,8 +286,10 @@ int luaD_growstack( lua_State* L, int n, int raiseerror )
     /* else stack overflow */
     /* add extra size to be able to handle the error message */
     luaD_reallocstack( L, ERRORSTACKSIZE, raiseerror );
+#ifndef MINIMIZE_NO_NO_LDEBUG
     if ( raiseerror )
         luaG_runerror( L, "stack overflow" );
+#endif
     return 0;
 }
 
@@ -916,10 +918,13 @@ LUA_API int lua_yieldk( lua_State* L, int nresults, lua_KContext ctx, lua_KFunct
     api_checknelems( L, nresults );
     if ( l_unlikely( !yieldable( L ) ) )
     {
+#ifndef MINIMIZE_NO_NO_LDEBUG
+
         if ( L != G( L )->mainthread )
             luaG_runerror( L, "attempt to yield across a C-call boundary" );
         else
             luaG_runerror( L, "attempt to yield from outside a coroutine" );
+#endif
     }
     L->status     = LUA_YIELD;
     ci->u2.nyield = nresults; /* save number of results */

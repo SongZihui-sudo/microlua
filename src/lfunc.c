@@ -132,7 +132,9 @@ static void checkclosemth( lua_State* L, StkId level )
         const char* vname = luaG_findlocal( L, L->ci, idx, NULL );
         if ( vname == NULL )
             vname = "?";
+#ifndef MINIMIZE_NO_NO_LDEBUG
         luaG_runerror( L, "variable '%s' got a non-closable value", vname );
+#endif
     }
 }
 

@@ -209,7 +209,7 @@ LUALIB_API char*( luaL_buffinitsize )( lua_State* L, luaL_Buffer* B, size_t sz )
 ** initial structure 'luaL_Stream' (it may contain other fields
 ** after that initial structure).
 */
-#ifndef LUA_USE_RP2040
+#ifndef LUA_USE_LITTLEFS
 #define LUA_FILEHANDLE "FILE*"
 #else
 #define LUA_FILEHANDLE "lfs_file_t*"

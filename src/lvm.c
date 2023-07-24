@@ -218,8 +218,10 @@ static int forprep( lua_State* L, StkId ra )
         lua_Integer init = ivalue( pinit );
         lua_Integer step = ivalue( pstep );
         lua_Integer limit;
+#ifndef MINIMIZE_NO_NO_LDEBUG
         if ( step == 0 )
             luaG_runerror( L, "'for' step is zero" );
+#endif
         setivalue( s2v( ra + 3 ), init ); /* control variable */
         if ( forlimit( L, init, plimit, &limit, step ) )
             return 1; /* skip the loop */
@@ -248,6 +250,7 @@ static int forprep( lua_State* L, StkId ra )
         lua_Number init;
         lua_Number limit;
         lua_Number step;
+#ifndef MINIMIZE_NO_NO_LDEBUG
         if ( l_unlikely( !tonumber( plimit, &limit ) ) )
             luaG_forerror( L, plimit, "limit" );
         if ( l_unlikely( !tonumber( pstep, &step ) ) )
@@ -256,6 +259,7 @@ static int forprep( lua_State* L, StkId ra )
             luaG_forerror( L, pinit, "initial value" );
         if ( step == 0 )
             luaG_runerror( L, "'for' step is zero" );
+#endif
         if ( luai_numlt( 0, step ) ? luai_numlt( limit, init ) : luai_numlt( init, limit ) )
             return 1; /* skip the loop */
         else
@@ -334,7 +338,9 @@ void luaV_finishget( lua_State* L, const TValue* t, TValue* key, StkId val, cons
         }
         /* else repeat (tail call 'luaV_finishget') */
     }
+#ifndef MINIMIZE_NO_NO_LDEBUG
     luaG_runerror( L, "'__index' chain too long; possible loop" );
+#endif
 }
 
 /*
@@ -723,7 +729,9 @@ void luaV_concat( lua_State* L, int total )
                 if ( l_unlikely( l >= ( MAX_SIZE / sizeof( char ) ) - tl ) )
                 {
                     L->top.p = top - total; /* pop strings to avoid wasting stack */
+#ifndef MINIMIZE_NO_NO_LDEBUG
                     luaG_runerror( L, "string length overflow" );
+#endif
                 }
                 tl += l;
             }
@@ -793,8 +801,10 @@ lua_Integer luaV_idiv( lua_State* L, lua_Integer m, lua_Integer n )
 {
     if ( l_unlikely( l_castS2U( n ) + 1u <= 1u ) )
     { /* special cases: -1 or 0 */
+#ifndef MINIMIZE_NO_NO_LDEBUG
         if ( n == 0 )
             luaG_runerror( L, "attempt to divide by zero" );
+#endif
         return intop( -, 0, m ); /* n==-1; avoid overflow with 0x80000...//-1 */
     }
     else
@@ -815,8 +825,10 @@ lua_Integer luaV_mod( lua_State* L, lua_Integer m, lua_Integer n )
 {
     if ( l_unlikely( l_castS2U( n ) + 1u <= 1u ) )
     { /* special cases: -1 or 0 */
+#ifndef MINIMIZE_NO_NO_LDEBUG
         if ( n == 0 )
             luaG_runerror( L, "attempt to perform 'n%%0'" );
+#endif
         return 0; /* m % -1 == 0; avoid overflow with 0x80000...%-1 */
     }
     else

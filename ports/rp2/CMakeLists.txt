@@ -29,9 +29,11 @@ AUX_SOURCE_DIRECTORY(../../lib/stdinit-lib/ source_rp2)
 AUX_SOURCE_DIRECTORY(../../lib/littlefs-lib/ source_rp2)
 
 add_compile_definitions(LUA_USE_RP2040=1)
+add_compile_definitions(LUA_USE_LITTLEFS=1)
+add_compile_definitions(MINIMIZE_NO_NO_LDEBUG=1)
 
 if(${minimize} EQUAL 1)
-    add_compile_definitions(Minimize=1)
+    add_compile_definitions(MINIMIZE=1)
     add_compile_options(-Os -ffunction-sections -fdata-sections)
     add_link_options(-W --data-sections)
 endif()

@@ -14,7 +14,7 @@
 
 LUAMOD_API int( luaopen_base )( lua_State* L );
 
-#ifndef Minimize
+#ifndef MINIMIZE
 
 #define LUA_COLIBNAME "coroutine"
 LUAMOD_API int( luaopen_coroutine )( lua_State* L );
@@ -45,8 +45,13 @@ LUAMOD_API int( luaopen_package )( lua_State* L );
 
 #endif
 
+#ifndef LUA_NO_HARDWARE_LIB
+
 #define LUA_GPIOLIBNAME "gpio"
+
 LUAMOD_API int( luaopen_gpio )( lua_State* L );
+
+#endif
 
 /* open all previous libraries */
 LUALIB_API void( luaL_openlibs )( lua_State* L );

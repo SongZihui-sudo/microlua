@@ -91,7 +91,9 @@ void* luaM_growaux_( lua_State* L, void* block, int nelems, int* psize, int size
     if ( size >= limit / 2 )
     {                                      /* cannot double it? */
         if ( l_unlikely( size >= limit ) ) /* cannot grow even a little? */
+#ifndef MINIMIZE_NO_NO_LDEBUG
             luaG_runerror( L, "too many %s (limit is %d)", what, limit );
+#endif
         size = limit; /* still have at least one free place */
     }
     else
@@ -129,7 +131,9 @@ void* luaM_shrinkvector_( lua_State* L, void* block, int* size, int final_n, int
 
 l_noret luaM_toobig( lua_State* L )
 {
+#ifndef MINIMIZE_NO_NO_LDEBUG
     luaG_runerror( L, "memory allocation error: block too big" );
+#endif
 }
 
 /*
