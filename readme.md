@@ -1,6 +1,6 @@
 # MicroLua
 
-> lua language for Microcontroller
+> lua language for Micro controller    
 
 - [MicroLua](#microlua)
   - [Getting start](#getting-start)
