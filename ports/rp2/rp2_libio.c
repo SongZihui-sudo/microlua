@@ -64,34 +64,6 @@ typedef lfs_luaL_Stream LStream;
 #define L_MODEEXT "b"
 #endif
 
-/**
- ** Read a character from the current file stream
- */
-int l_getc( int f )
-{
-    lfs_file_t* fp = ( lfs_file_t* )f;
-    char buffer;
-    int err            = pico_read( f, &buffer, sizeof( char ) );
-    const char* errmsg = pico_errmsg( err );
-    if ( !strcmp( errmsg, "Unknown error" ) )
-    {
-        return buffer;
-    }
-    return err;
-}
-
-int l_ungetc( char c, int f )
-{
-    lfs_file_t* fp     = ( lfs_file_t* )f;
-    int err            = pico_write( f, &c, sizeof( char ) );
-    const char* errmsg = pico_errmsg( err );
-    if ( !strcmp( errmsg, "Unknown error" ) )
-    {
-        return 1;
-    }
-    return err;
-}
-
 /* Check whether 'mode' matches '[rwa]%+?[L_MODEEXT]*' */
 static int l_checkmode( const char* mode )
 {
@@ -110,30 +82,6 @@ static int l_checkmode( const char* mode )
 #endif
 
 #define isclosed( p ) ( ( p )->closef == NULL )
-
-/**
- ** Change the const char* mode to the int type in enum
- ** input "r","w","a","r+","w+","a+"
- */
-int lfs_mode( const char* mode )
-{
-    int _mode = 0;
-    if ( !strcmp( mode, "w" ) )
-        _mode = LFS_O_WRONLY | LFS_O_CREAT | LFS_O_TRUNC;
-    else if ( !strcmp( mode, "r" ) )
-        _mode = LFS_O_RDONLY;
-    else if ( !strcmp( mode, "a" ) )
-        _mode = LFS_O_WRONLY | LFS_O_CREAT | LFS_O_APPEND;
-    else if ( !strcmp( mode, "w+" ) )
-        _mode = LFS_O_RDWR | LFS_O_CREAT | LFS_O_TRUNC;
-    else if ( !strcmp( mode, "r+" ) )
-        _mode = LFS_O_RDWR;
-    else if ( !strcmp( mode, "a+" ) )
-        _mode = LFS_O_APPEND | LFS_O_RDWR | LFS_O_CREAT;
-    else
-        _mode = LFS_O_RDONLY;
-    return _mode;
-}
 
 /*
 ** Calls the 'close' function from a file handle. The 'volatile' avoids
@@ -229,7 +177,7 @@ static int read_line( lua_State* L, int f, int chop )
         char* buff = luaL_prepbuffer( &b ); /* preallocate buffer space */
         int i      = 0;
         l_lockfile( f ); /* no memory errors can happen inside the lock */
-        while ( i < LUAL_BUFFERSIZE && ( c = l_getc( f ) ) != EOF && c != '\n' )
+        while ( i < LUAL_BUFFERSIZE && ( c = pico_getc( f ) ) != EOF && c != '\n' )
         {
             if ( c <= 0 )
             {
@@ -259,8 +207,8 @@ static int nextc( RN* rn )
     }
     else
     {
-        rn->buff[rn->n++] = rn->c;           /* save current char */
-        rn->c             = l_getc( rn->f ); /* read next one */
+        rn->buff[rn->n++] = rn->c;              /* save current char */
+        rn->c             = pico_getc( rn->f ); /* read next one */
         return 1;
     }
 }
@@ -281,8 +229,8 @@ static void read_all( lua_State* L, int f )
 
 static int test_eof( lua_State* L, int f )
 {
-    int c = l_getc( f );
-    l_ungetc( c, f ); /* no-op when c == EOF */
+    int c = pico_getc( f );
+    pico_ungetc( c, f ); /* no-op when c == EOF */
     lua_pushliteral( L, "" );
     return ( c != EOF );
 }
@@ -327,7 +275,7 @@ static int read_number( lua_State* L, int f )
     l_lockfile( rn.f );
     do
     {
-        rn.c = l_getc( rn.f );
+        rn.c = pico_getc( rn.f );
     } while ( isspace( rn.c ) ); /* skip spaces */
     test2( &rn, "-+" );          /* optional sign */
     if ( test2( &rn, "00" ) )
@@ -345,7 +293,7 @@ static int read_number( lua_State* L, int f )
         test2( &rn, "-+" );   /* exponent sign */
         readdigits( &rn, 0 ); /* exponent digits */
     }
-    l_ungetc( rn.c, rn.f ); /* unread look-ahead char */
+    pico_ungetc( rn.c, rn.f ); /* unread look-ahead char */
     l_unlockfile( rn.f );
     rn.buff[rn.n] = '\0'; /* finish string */
     if ( l_likely( lua_stringtonumber( L, rn.buff ) ) )

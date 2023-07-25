@@ -30,7 +30,7 @@ AUX_SOURCE_DIRECTORY(../../lib/littlefs-lib/ source_rp2)
 
 add_compile_definitions(LUA_USE_RP2040=1)
 add_compile_definitions(LUA_USE_LITTLEFS=1)
-add_compile_definitions(MINIMIZE_NO_NO_LDEBUG=1)
+add_compile_definitions(MINIMIZE_NO_COMPILER=1)
 
 if(${minimize} EQUAL 1)
     add_compile_definitions(MINIMIZE=1)

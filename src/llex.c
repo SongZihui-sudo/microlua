@@ -56,6 +56,7 @@ static void save( LexState* ls, int c )
     b->buffer[luaZ_bufflen( b )++] = cast_char( c );
 }
 
+#ifndef MINIMIZE_NO_COMPILER
 void luaX_init( lua_State* L )
 {
     int i;
@@ -68,6 +69,11 @@ void luaX_init( lua_State* L )
         ts->extra = cast_byte( i + 1 ); /* reserved word */
     }
 }
+#else
+void luaX_init( lua_State* L )
+{ /* nothing */
+}
+#endif
 
 const char* luaX_token2str( LexState* ls, int token )
 {

@@ -4,6 +4,7 @@
 ** See Copyright Notice in lua.h
 */
 
+#include <stddef.h>
 #define lua_c
 
 #include "lprefix.h"
@@ -56,6 +57,24 @@ static void setsignal( int sig, void ( *handler )( int ) )
 #define setsignal signal
 
 #endif /* } */
+
+void test()
+{
+    int f = pico_open( "boot", lfs_mode( "w" ) );
+    char bytes[]
+    = { 27,  76,  117, 97,  84,  0,   25,  147, 13,  10,  26,  10,  4,  8,   8,   120,
+        86,  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   40, 119, 64,  1,
+        138, 64,  116, 101, 115, 116, 46,  108, 117, 97,  128, 128, 0,  1,   2,   133,
+        81,  0,   0,   0,   11,  0,   0,   0,   131, 128, 0,   0,   68, 0,   2,   1,
+        70,  0,   1,   1,   130, 4,   134, 112, 114, 105, 110, 116, 4,  142, 104, 101,
+        108, 108, 111, 32,  119, 111, 114, 108, 100, 33,  10,  129, 1,  0,   0,   128,
+        133, 1,   0,   0,   0,   0,   128, 128, 129, 133, 95,  69,  78, 86 };
+    for ( size_t i = 0; i < 110; i++ )
+    {
+        pico_write( f, &bytes[i], 1 );
+    }
+    pico_close( f );
+}
 
 /*
 ** Hook set by signal function to stop the interpreter.
@@ -141,6 +160,35 @@ static int docall( lua_State* L, int narg, int nres )
     setsignal( SIGINT, SIG_DFL ); /* reset C-signal handler */
     lua_remove( L, base );        /* remove message handler from the stack */
     return status;
+}
+
+/*
+** Push on the stack the contents of table 'arg' from 1 to #arg
+*/
+static int pushargs( lua_State* L )
+{
+    int i, n;
+    if ( lua_getglobal( L, "arg" ) != LUA_TTABLE )
+        luaL_error( L, "'arg' is not a table" );
+    n = ( int )luaL_len( L, -1 );
+    luaL_checkstack( L, n + 3, "too many arguments to script" );
+    for ( i = 1; i <= n; i++ )
+        lua_rawgeti( L, -i, i );
+    lua_remove( L, -i ); /* remove table from the stack */
+    return n;
+}
+
+static int handle_script( lua_State* L, char** argv )
+{
+    int status;
+    const char* fname = argv[0];
+    status            = luaL_loadfile( L, fname );
+    if ( status == LUA_OK )
+    {
+        int n  = pushargs( L ); /* push arguments to script */
+        status = docall( L, n, LUA_MULTRET );
+    }
+    return report( L, status );
 }
 
 static void print_version( void )
@@ -410,6 +458,19 @@ static void doREPL( lua_State* L )
     progname = oldprogname;
 }
 
+static void createargtable( lua_State* L, char** argv, int argc, int script )
+{
+    int i, narg;
+    narg = argc - ( script + 1 ); /* number of positive indices */
+    lua_createtable( L, narg, script + 1 );
+    for ( i = 0; i < argc; i++ )
+    {
+        lua_pushstring( L, argv[i] );
+        lua_rawseti( L, -2, i - script );
+    }
+    lua_setglobal( L, "arg" );
+}
+
 /* }================================================================== */
 
 /*
@@ -422,11 +483,20 @@ static int pmain( lua_State* L )
     luaL_openlibs( L );           /* open standard libraries */
     lua_gc( L, LUA_GCRESTART );   /* start GC... */
     lua_gc( L, LUA_GCGEN, 0, 0 ); /* ...in generational mode */
+#ifndef MINIMIZE_NO_COMPILER
     if ( lua_stdin_is_tty() )
     { /* running in interactive mode? */
         print_version();
         doREPL( L ); /* do read-eval-print loop */
     }
+#else
+    int argc      = 2;
+    char* argv[2] = { "", "boot" };
+    int script    = 1;
+    createargtable( L, argv, argc, script ); /* create table 'arg' */ /* error running LUA_INIT */
+    if ( handle_script( L, argv + script ) != LUA_OK )
+        return 0; /* interrupt in case of error */
+#endif
     lua_pushboolean( L, 1 ); /* signal no errors */
     return 1;
 }
@@ -444,6 +514,7 @@ static int initialize_filesystem()
             ( int )stat.block_count,
             ( int )stat.block_size,
             ( int )stat.blocks_used );
+    test();
     return 0;
 }
 

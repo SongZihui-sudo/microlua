@@ -2099,6 +2099,7 @@ static void mainfunc( LexState* ls, FuncState* fs )
     close_func( ls );
 }
 
+#ifndef MINIMIZE_NO_COMPILER
 LClosure* luaY_parser( lua_State* L, ZIO* z, Mbuffer* buff, Dyndata* dyd, const char* name, int firstchar )
 {
     LexState lexstate;
@@ -2124,3 +2125,9 @@ LClosure* luaY_parser( lua_State* L, ZIO* z, Mbuffer* buff, Dyndata* dyd, const 
     L->top.p--; /* remove scanner's table */
     return cl;  /* closure is on the stack, too */
 }
+#else
+LClosure* luaY_parser( lua_State* L, ZIO* z, Mbuffer* buff, Dyndata* dyd, const char* name, int firstchar )
+{
+    return NULL;
+}
+#endif

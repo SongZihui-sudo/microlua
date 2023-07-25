@@ -734,7 +734,8 @@ LUALIB_API void luaL_unref( lua_State* L, int t, int ref )
 ** Load functions
 ** =======================================================
 */
-
+#define LUA_USE_LITTLEFS
+#ifndef LUA_USE_LITTLEFS
 typedef struct LoadF
 {
     int n;             /* number of pre-read characters */
@@ -857,6 +858,123 @@ LUALIB_API int luaL_loadfilex( lua_State* L, const char* filename, const char* m
     return status;
 }
 
+#else
+#include "pico_hal.h"
+
+#define DEBUG( format, ... )                                                               \
+    printf(                                                                                \
+    "File: "__FILE__                                                                       \
+    ", Line: %05d: " format "/n",                                                          \
+    __LINE__,                                                                              \
+    ##__VA_ARGS__ )
+
+typedef struct LoadF
+{
+    int n;             /* number of pre-read characters */
+    int f;             /* file being read */
+    char buff[BUFSIZ]; /* area for reading file */
+} LoadF;
+
+static const char* getF( lua_State* L, void* ud, size_t* size )
+{
+    LoadF* lf = ( LoadF* )ud;
+    ( void )L; /* not used */
+    if ( lf->n > 0 )
+    {                  /* are there pre-read characters to be read? */
+        *size = lf->n; /* return them (chars already in buffer) */
+        lf->n = 0;     /* no more pre-read characters */
+    }
+    else
+    { /* read a block from file */
+        /* 'fread' can return > 0 *and* set the EOF flag. If next call to
+           'getF' called 'fread', it might still wait for user input.
+           The next check avoids this problem. */
+        lfs_file_t* fp = ( lfs_file_t* )lf->f;
+        if ( fp->pos >= fp->ctz.size )
+            return NULL;
+        *size = pico_read( lf->f, lf->buff, 1 * sizeof( lf->buff ) ); /* read block */
+    }
+    return lf->buff;
+}
+
+static int errfile( lua_State* L, const char* what, int fnameindex )
+{
+    const char* serr     = strerror( errno );
+    const char* filename = lua_tostring( L, fnameindex ) + 1;
+    lua_pushfstring( L, "cannot %s %s: %s", what, filename, serr );
+    lua_remove( L, fnameindex );
+    return LUA_ERRFILE;
+}
+
+/*
+** Skip an optional BOM at the start of a stream. If there is an
+** incomplete BOM (the first character is correct but the rest is
+** not), returns the first character anyway to force an error
+** (as no chunk can start with 0xEF).
+*/
+static int skipBOM( int f )
+{
+    int c = pico_getc( f ); /* read first character */
+    if ( c == 0xEF && pico_getc( f ) == 0xBB && pico_getc( f ) == 0xBF ) /* correct BOM? */
+        return pico_getc( f ); /* ignore BOM and return next char */
+    else                       /* no (valid) BOM */
+        return c;              /* return first character */
+}
+
+/*
+** reads the first character of file 'f' and skips an optional BOM mark
+** in its beginning plus its first line if it starts with '#'. Returns
+** true if it skipped the first line.  In any case, '*cp' has the
+** first "valid" character of the file (after the optional BOM and
+** a first-line comment).
+*/
+static int skipcomment( int f, int* cp )
+{
+    int c = *cp = skipBOM( f );
+    if ( c == '#' )
+    { /* first line is a comment (Unix exec. file)? */
+        do
+        { /* skip first line */
+            c = pico_getc( f );
+        } while ( c != EOF && c != '\n' );
+        *cp = pico_getc( f ); /* next character after comment, if present */
+        return 1;             /* there was a comment */
+    }
+    else
+        return 0; /* no comment */
+}
+
+LUALIB_API int luaL_loadfilex( lua_State* L, const char* filename, const char* mode )
+{
+    LoadF lf;
+    int status, readstatus;
+    int c;
+    int fnameindex = lua_gettop( L ) + 1; /* index of filename on the stack */
+    lua_pushfstring( L, "@%s", filename );
+    lf.f = pico_open( filename, lfs_mode( "r" ) );
+    if ( lf.f < 0 )
+        return errfile( L, "open", fnameindex );
+    DEBUG( "" );
+    lf.n = 0;
+    if ( skipcomment( lf.f, &c ) ) /* read initial portion */
+        lf.buff[lf.n++] = '\n';    /* add newline to correct line numbers */
+    DEBUG( "" );
+    if ( c == LUA_SIGNATURE[0] )
+    {                            /* binary file? */
+        lf.n = 0;                /* remove possible newline */
+        skipcomment( lf.f, &c ); /* re-read initial portion */
+    }
+    DEBUG( "" );
+    if ( c != EOF )
+        lf.buff[lf.n++] = c; /* 'c' is the first character of the stream */
+    status = lua_load( L, getF, &lf, lua_tostring( L, -1 ), mode );
+    pico_close( lf.f ); /* close file (even in case of errors) */
+    lua_remove( L, fnameindex );
+    DEBUG( "" );
+    return status;
+}
+
+#endif
 typedef struct LoadS
 {
     const char* s;
