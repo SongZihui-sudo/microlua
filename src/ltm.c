@@ -154,14 +154,22 @@ void luaT_trybinTM( lua_State* L, const TValue* p1, const TValue* p2, StkId res,
             case TM_SHR:
             case TM_BNOT:
             {
+#ifndef MINIMIZE_NO_LDEBUG
+
                 if ( ttisnumber( p1 ) && ttisnumber( p2 ) )
                     luaG_tointerror( L, p1, p2 );
                 else
+            
                     luaG_opinterror( L, p1, p2, "perform bitwise operation on" );
+#endif
             }
             /* calls never return, but to avoid warnings: */ /* FALLTHROUGH */
             default:
+#ifndef MINIMIZE_NO_LDEBUG
                 luaG_opinterror( L, p1, p2, "perform arithmetic on" );
+#else
+;
+#endif
         }
     }
 }
@@ -169,8 +177,12 @@ void luaT_trybinTM( lua_State* L, const TValue* p1, const TValue* p2, StkId res,
 void luaT_tryconcatTM( lua_State* L )
 {
     StkId top = L->top.p;
+#ifndef MINIMIZE_NO_LDEBUG
     if ( l_unlikely( !callbinTM( L, s2v( top - 2 ), s2v( top - 1 ), top - 2, TM_CONCAT ) ) )
         luaG_concaterror( L, s2v( top - 2 ), s2v( top - 1 ) );
+#else
+callbinTM( L, s2v( top - 2 ), s2v( top - 1 ), top - 2, TM_CONCAT );
+#endif
 }
 
 void luaT_trybinassocTM( lua_State* L, const TValue* p1, const TValue* p2, int flip, StkId res, TMS event )
@@ -214,7 +226,9 @@ int luaT_callorderTM( lua_State* L, const TValue* p1, const TValue* p2, TMS even
         /* else error will remove this 'ci'; no need to clear mark */
     }
 #endif
+#ifndef MINIMIZE_NO_LDEBUG
     luaG_ordererror( L, p1, p2 ); /* no metamethod found */
+#endif
     return 0;                     /* to avoid warnings */
 }
 

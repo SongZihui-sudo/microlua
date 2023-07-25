@@ -180,8 +180,10 @@ static int forlimit( lua_State* L, lua_Integer init, const TValue* lim, lua_Inte
     {
         /* not coercible to in integer */
         lua_Number flim;               /* try to convert to float */
+#ifndef MINIMIZE_NO_LDEBUG
         if ( !tonumber( lim, &flim ) ) /* cannot convert to float? */
             luaG_forerror( L, lim, "limit" );
+#endif
         /* else 'flim' is a float out of integer bounds */
         if ( luai_numlt( 0, flim ) )
         { /* if it is positive, it is too large */
@@ -218,7 +220,7 @@ static int forprep( lua_State* L, StkId ra )
         lua_Integer init = ivalue( pinit );
         lua_Integer step = ivalue( pstep );
         lua_Integer limit;
-#ifndef MINIMIZE_NO_NO_LDEBUG
+#ifndef MINIMIZE_NO_LDEBUG
         if ( step == 0 )
             luaG_runerror( L, "'for' step is zero" );
 #endif
@@ -250,7 +252,7 @@ static int forprep( lua_State* L, StkId ra )
         lua_Number init;
         lua_Number limit;
         lua_Number step;
-#ifndef MINIMIZE_NO_NO_LDEBUG
+#ifndef MINIMIZE_NO_LDEBUG
         if ( l_unlikely( !tonumber( plimit, &limit ) ) )
             luaG_forerror( L, plimit, "limit" );
         if ( l_unlikely( !tonumber( pstep, &step ) ) )
@@ -311,8 +313,12 @@ void luaV_finishget( lua_State* L, const TValue* t, TValue* key, StkId val, cons
             lua_assert( !ttistable( t ) );
             tm = luaT_gettmbyobj( L, t, TM_INDEX );
             if ( l_unlikely( notm( tm ) ) )
+#ifndef MINIMIZE_NO_LDEBUG
                 luaG_typeerror( L, t, "index" ); /* no metamethod */
                                                  /* else will try the metamethod */
+#else
+;
+#endif
         }
         else
         { /* 't' is a table */
@@ -338,7 +344,7 @@ void luaV_finishget( lua_State* L, const TValue* t, TValue* key, StkId val, cons
         }
         /* else repeat (tail call 'luaV_finishget') */
     }
-#ifndef MINIMIZE_NO_NO_LDEBUG
+#ifndef MINIMIZE_NO_LDEBUG
     luaG_runerror( L, "'__index' chain too long; possible loop" );
 #endif
 }
@@ -373,8 +379,10 @@ void luaV_finishset( lua_State* L, const TValue* t, TValue* key, TValue* val, co
         else
         { /* not a table; check metamethod */
             tm = luaT_gettmbyobj( L, t, TM_NEWINDEX );
+#ifndef MINIMIZE_NO_LDEBUG
             if ( l_unlikely( notm( tm ) ) )
                 luaG_typeerror( L, t, "index" );
+#endif
         }
         /* try the metamethod */
         if ( ttisfunction( tm ) )
@@ -390,7 +398,9 @@ void luaV_finishset( lua_State* L, const TValue* t, TValue* key, TValue* val, co
         }
         /* else 'return luaV_finishset(L, t, key, val, slot)' (loop) */
     }
+#ifndef MINIMIZE_NO_LDEBUG
     luaG_runerror( L, "'__newindex' chain too long; possible loop" );
+#endif
 }
 
 /*
@@ -729,7 +739,7 @@ void luaV_concat( lua_State* L, int total )
                 if ( l_unlikely( l >= ( MAX_SIZE / sizeof( char ) ) - tl ) )
                 {
                     L->top.p = top - total; /* pop strings to avoid wasting stack */
-#ifndef MINIMIZE_NO_NO_LDEBUG
+#ifndef MINIMIZE_NO_LDEBUG
                     luaG_runerror( L, "string length overflow" );
 #endif
                 }
@@ -783,8 +793,10 @@ void luaV_objlen( lua_State* L, StkId ra, const TValue* rb )
         default:
         { /* try metamethod */
             tm = luaT_gettmbyobj( L, rb, TM_LEN );
+#ifndef MINIMIZE_NO_LDEBUG
             if ( l_unlikely( notm( tm ) ) ) /* no metamethod? */
                 luaG_typeerror( L, rb, "get length of" );
+#endif
             break;
         }
     }
@@ -801,7 +813,7 @@ lua_Integer luaV_idiv( lua_State* L, lua_Integer m, lua_Integer n )
 {
     if ( l_unlikely( l_castS2U( n ) + 1u <= 1u ) )
     { /* special cases: -1 or 0 */
-#ifndef MINIMIZE_NO_NO_LDEBUG
+#ifndef MINIMIZE_NO_LDEBUG
         if ( n == 0 )
             luaG_runerror( L, "attempt to divide by zero" );
 #endif
@@ -825,7 +837,7 @@ lua_Integer luaV_mod( lua_State* L, lua_Integer m, lua_Integer n )
 {
     if ( l_unlikely( l_castS2U( n ) + 1u <= 1u ) )
     { /* special cases: -1 or 0 */
-#ifndef MINIMIZE_NO_NO_LDEBUG
+#ifndef MINIMIZE_NO_LDEBUG
         if ( n == 0 )
             luaG_runerror( L, "attempt to perform 'n%%0'" );
 #endif

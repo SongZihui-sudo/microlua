@@ -627,7 +627,7 @@ const char* luaO_pushvfstring( lua_State* L, const char* fmt, va_list argp )
             }
             default:
             {
-#ifndef MINIMIZE_NO_NO_LDEBUG
+#ifndef MINIMIZE_NO_LDEBUG
                 luaG_runerror( L, "invalid option '%%%c' to 'lua_pushfstring'", *( e + 1 ) );
 #endif
             }

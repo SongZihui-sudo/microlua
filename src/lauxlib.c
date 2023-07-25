@@ -734,7 +734,6 @@ LUALIB_API void luaL_unref( lua_State* L, int t, int ref )
 ** Load functions
 ** =======================================================
 */
-#define LUA_USE_LITTLEFS
 #ifndef LUA_USE_LITTLEFS
 typedef struct LoadF
 {
@@ -859,14 +858,8 @@ LUALIB_API int luaL_loadfilex( lua_State* L, const char* filename, const char* m
 }
 
 #else
-#include "pico_hal.h"
 
-#define DEBUG( format, ... )                                                               \
-    printf(                                                                                \
-    "File: "__FILE__                                                                       \
-    ", Line: %05d: " format "/n",                                                          \
-    __LINE__,                                                                              \
-    ##__VA_ARGS__ )
+#include "pico_hal.h"
 
 typedef struct LoadF
 {
@@ -954,23 +947,17 @@ LUALIB_API int luaL_loadfilex( lua_State* L, const char* filename, const char* m
     lf.f = pico_open( filename, lfs_mode( "r" ) );
     if ( lf.f < 0 )
         return errfile( L, "open", fnameindex );
-    DEBUG( "" );
     lf.n = 0;
     if ( skipcomment( lf.f, &c ) ) /* read initial portion */
         lf.buff[lf.n++] = '\n';    /* add newline to correct line numbers */
-    DEBUG( "" );
-    if ( c == LUA_SIGNATURE[0] )
-    {                            /* binary file? */
-        lf.n = 0;                /* remove possible newline */
-        skipcomment( lf.f, &c ); /* re-read initial portion */
-    }
-    DEBUG( "" );
+    /* binary file? */
+    lf.n = 0;                /* remove possible newline */
+    skipcomment( lf.f, &c ); /* re-read initial portion */
     if ( c != EOF )
         lf.buff[lf.n++] = c; /* 'c' is the first character of the stream */
     status = lua_load( L, getF, &lf, lua_tostring( L, -1 ), mode );
     pico_close( lf.f ); /* close file (even in case of errors) */
     lua_remove( L, fnameindex );
-    DEBUG( "" );
     return status;
 }
 

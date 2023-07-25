@@ -802,7 +802,7 @@ static const char* varinfo( lua_State* L, const TValue* o )
 static l_noret typeerror( lua_State* L, const TValue* o, const char* op, const char* extra )
 {
     const char* t = luaT_objtypename( L, o );
-#ifndef MINIMIZE_NO_NO_LDEBUG
+#ifndef MINIMIZE_NO_LDEBUG
     luaG_runerror( L, "attempt to %s a %s value%s", op, t, extra );
 #endif
 }
@@ -811,16 +811,19 @@ static l_noret typeerror( lua_State* L, const TValue* o, const char* op, const c
 ** Raise a type error with "standard" information about the faulty
 ** object 'o' (using 'varinfo').
 */
+#ifndef MINIMIZE_NO_LDEBUG
 l_noret luaG_typeerror( lua_State* L, const TValue* o, const char* op )
 {
     typeerror( L, o, op, varinfo( L, o ) );
 }
+#endif
 
 /*
 ** Raise an error for calling a non-callable object. Try to find a name
 ** for the object based on how it was called ('funcnamefromcall'); if it
 ** cannot get a name there, try 'varinfo'.
 */
+#ifndef MINIMIZE_NO_LDEBUG
 l_noret luaG_callerror( lua_State* L, const TValue* o )
 {
     CallInfo* ci      = L->ci;
@@ -829,52 +832,57 @@ l_noret luaG_callerror( lua_State* L, const TValue* o )
     const char* extra = kind ? formatvarinfo( L, kind, name ) : varinfo( L, o );
     typeerror( L, o, "call", extra );
 }
+#endif
 
+#ifndef MINIMIZE_NO_LDEBUG
 l_noret luaG_forerror( lua_State* L, const TValue* o, const char* what )
 {
-#ifndef MINIMIZE_NO_NO_LDEBUG
     luaG_runerror( L, "bad 'for' %s (number expected, got %s)", what, luaT_objtypename( L, o ) );
-#endif
 }
+#endif
 
+#ifndef MINIMIZE_NO_LDEBUG
 l_noret luaG_concaterror( lua_State* L, const TValue* p1, const TValue* p2 )
 {
     if ( ttisstring( p1 ) || cvt2str( p1 ) )
         p1 = p2;
     luaG_typeerror( L, p1, "concatenate" );
 }
+#endif
 
+#ifndef MINIMIZE_NO_LDEBUG
 l_noret luaG_opinterror( lua_State* L, const TValue* p1, const TValue* p2, const char* msg )
 {
     if ( !ttisnumber( p1 ) ) /* first operand is wrong? */
         p2 = p1;             /* now second is wrong */
     luaG_typeerror( L, p2, msg );
 }
+#endif
 
 /*
 ** Error when both values are convertible to numbers, but not to integers
 */
+#ifndef MINIMIZE_NO_LDEBUG
 l_noret luaG_tointerror( lua_State* L, const TValue* p1, const TValue* p2 )
 {
     lua_Integer temp;
     if ( !luaV_tointegerns( p1, &temp, LUA_FLOORN2I ) )
         p2 = p1;
-#ifndef MINIMIZE_NO_NO_LDEBUG
     luaG_runerror( L, "number%s has no integer representation", varinfo( L, p2 ) );
-#endif
 }
+#endif
 
+#ifndef MINIMIZE_NO_LDEBUG
 l_noret luaG_ordererror( lua_State* L, const TValue* p1, const TValue* p2 )
 {
     const char* t1 = luaT_objtypename( L, p1 );
     const char* t2 = luaT_objtypename( L, p2 );
-#ifndef MINIMIZE_NO_NO_LDEBUG
     if ( strcmp( t1, t2 ) == 0 )
         luaG_runerror( L, "attempt to compare two %s values", t1 );
     else
         luaG_runerror( L, "attempt to compare %s with %s", t1, t2 );
-#endif
 }
+#endif
 
 /* add src:line information to 'msg' */
 const char* luaG_addinfo( lua_State* L, const char* msg, TString* src, int line )
@@ -890,6 +898,7 @@ const char* luaG_addinfo( lua_State* L, const char* msg, TString* src, int line 
     return luaO_pushfstring( L, "%s:%d: %s", buff, line, msg );
 }
 
+#ifndef MINIMIZE_NO_LDEBUG
 l_noret luaG_errormsg( lua_State* L )
 {
     if ( L->errfunc != 0 )
@@ -903,7 +912,9 @@ l_noret luaG_errormsg( lua_State* L )
     }
     luaD_throw( L, LUA_ERRRUN );
 }
+#endif
 
+#ifndef MINIMIZE_NO_LDEBUG
 l_noret luaG_runerror( lua_State* L, const char* fmt, ... )
 {
     CallInfo* ci = L->ci;
@@ -919,10 +930,9 @@ l_noret luaG_runerror( lua_State* L, const char* fmt, ... )
         setobjs2s( L, L->top.p - 2, L->top.p - 1 ); /* remove 'msg' */
         L->top.p--;
     }
-#ifndef MINIMIZE_NO_NO_LDEBUG
     luaG_errormsg( L );
-#endif
 }
+#endif
 
 /*
 ** Check whether new instruction 'newpc' is in a different line from

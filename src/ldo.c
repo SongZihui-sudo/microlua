@@ -286,7 +286,7 @@ int luaD_growstack( lua_State* L, int n, int raiseerror )
     /* else stack overflow */
     /* add extra size to be able to handle the error message */
     luaD_reallocstack( L, ERRORSTACKSIZE, raiseerror );
-#ifndef MINIMIZE_NO_NO_LDEBUG
+#ifndef MINIMIZE_NO_LDEBUG
     if ( raiseerror )
         luaG_runerror( L, "stack overflow" );
 #endif
@@ -445,8 +445,10 @@ static StkId tryfuncTM( lua_State* L, StkId func )
     StkId p;
     checkstackGCp( L, 1, func );                     /* space for metamethod */
     tm = luaT_gettmbyobj( L, s2v( func ), TM_CALL ); /* (after previous GC) */
+#ifndef MINIMIZE_NO_LDEBUG
     if ( l_unlikely( ttisnil( tm ) ) )
         luaG_callerror( L, s2v( func ) ); /* nothing to call */
+#endif
     for ( p = L->top.p; p > func; p-- )   /* open space for metamethod */
         setobjs2s( L, p, p - 1 );
     L->top.p++;              /* stack space pre-allocated by the caller */
@@ -918,8 +920,7 @@ LUA_API int lua_yieldk( lua_State* L, int nresults, lua_KContext ctx, lua_KFunct
     api_checknelems( L, nresults );
     if ( l_unlikely( !yieldable( L ) ) )
     {
-#ifndef MINIMIZE_NO_NO_LDEBUG
-
+#ifndef MINIMIZE_NO_LDEBUG
         if ( L != G( L )->mainthread )
             luaG_runerror( L, "attempt to yield across a C-call boundary" );
         else

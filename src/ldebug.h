@@ -35,7 +35,7 @@ LUAI_FUNC const char* luaG_findlocal( lua_State* L, CallInfo* ci, int n, StkId* 
 LUAI_FUNC const char* luaG_addinfo( lua_State* L, const char* msg, TString* src, int line );
 LUAI_FUNC int luaG_traceexec( lua_State* L, const Instruction* pc );
 
-#ifndef MINIMIZE_NO_NO_LDEBUG
+#ifndef MINIMIZE_NO_LDEBUG
 LUAI_FUNC l_noret luaG_typeerror( lua_State* L, const TValue* o, const char* opname );
 LUAI_FUNC l_noret luaG_callerror( lua_State* L, const TValue* o );
 LUAI_FUNC l_noret luaG_forerror( lua_State* L, const TValue* o, const char* what );

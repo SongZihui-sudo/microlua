@@ -346,7 +346,7 @@ static unsigned int findindex( lua_State* L, Table* t, TValue* key, unsigned int
     {
         const TValue* n = getgeneric( t, key, 1 );
         if ( l_unlikely( isabstkey( n ) ) )
-#ifndef MINIMIZE_NO_NO_LDEBUG
+#ifndef MINIMIZE_NO_LDEBUG
             luaG_runerror( L, "invalid key to 'next'" ); /* key not found */
 #endif
         i = cast_int( nodefromval( n ) - gnode( t, 0 ) ); /* key index in hash table */
@@ -508,7 +508,7 @@ static void setnodevector( lua_State* L, Table* t, unsigned int size )
     {
         int i;
         int lsize = luaO_ceillog2( size );
-#ifndef MINIMIZE_NO_NO_LDEBUG
+#ifndef MINIMIZE_NO_LDEBUG
         if ( lsize > MAXHBITS || ( 1u << lsize ) > MAXHSIZE )
             luaG_runerror( L, "table overflow" );
 #endif
@@ -696,7 +696,7 @@ static void luaH_newkey( lua_State* L, Table* t, const TValue* key, TValue* valu
     Node* mp;
     TValue aux;
     if ( l_unlikely( ttisnil( key ) ) )
-#ifndef MINIMIZE_NO_NO_LDEBUG
+#ifndef MINIMIZE_NO_LDEBUG
         luaG_runerror( L, "table index is nil" );
 #else
         ;
@@ -711,7 +711,7 @@ static void luaH_newkey( lua_State* L, Table* t, const TValue* key, TValue* valu
             key = &aux; /* insert it as an integer */
         }
         else if ( l_unlikely( luai_numisnan( f ) ) )
-#ifndef MINIMIZE_NO_NO_LDEBUG
+#ifndef MINIMIZE_NO_LDEBUG
             luaG_runerror( L, "table index is NaN" );
 #else
             ;

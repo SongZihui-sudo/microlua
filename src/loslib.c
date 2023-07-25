@@ -415,3 +415,7 @@ LUAMOD_API int luaopen_os( lua_State* L )
     luaL_newlib( L, syslib );
     return 1;
 }
+
+#ifdef LUA_USE_WINDOWS
+#include "../windows/win_loslib.C"
+#endif

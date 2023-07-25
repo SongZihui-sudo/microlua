@@ -673,7 +673,9 @@ static int pmain( lua_State* L )
         lua_pushboolean( L, 1 ); /* signal for libraries to ignore env. vars. */
         lua_setfield( L, LUA_REGISTRYINDEX, "LUA_NOENV" );
     }
+#ifndef MAKE_LUAC
     luaL_openlibs( L );                      /* open standard libraries */
+#endif
     createargtable( L, argv, argc, script ); /* create table 'arg' */
     lua_gc( L, LUA_GCRESTART );              /* start GC... */
     lua_gc( L, LUA_GCGEN, 0, 0 );            /* ...in generational mode */
