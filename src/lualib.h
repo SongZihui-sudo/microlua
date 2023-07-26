@@ -14,7 +14,7 @@
 
 LUAMOD_API int( luaopen_base )( lua_State* L );
 
-#ifndef MINIMIZE
+#ifndef MINIMIZE_NO_STANDATD_LIB
 
 #define LUA_COLIBNAME "coroutine"
 LUAMOD_API int( luaopen_coroutine )( lua_State* L );

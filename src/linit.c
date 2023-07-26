@@ -36,7 +36,7 @@
 ** these libs are loaded by lua.c and are readily available to any Lua
 ** program
 */
-#ifndef MINIMIZE
+#ifndef MINIMIZE_NO_STANDATD_LIB
 #ifndef LUA_NO_HARDWARE_LIB
 static const luaL_Reg loadedlibs[]
 = { { LUA_GNAME, luaopen_base },          { LUA_LOADLIBNAME, luaopen_package },
@@ -55,7 +55,7 @@ static const luaL_Reg loadedlibs[]
       { NULL, NULL } };
 #endif
 #else
-static const luaL_Reg loadedlibs[] = { { LUA_GPIOLIBNAME, luaopen_gpio }, { NULL, NULL } };
+static const luaL_Reg loadedlibs[] = { { LUA_GNAME, luaopen_base }, { LUA_GPIOLIBNAME, luaopen_gpio }, { NULL, NULL } };
 #endif
 
 LUALIB_API void luaL_openlibs( lua_State* L )

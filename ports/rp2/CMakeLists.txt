@@ -10,7 +10,7 @@ PROJECT(MicroLua)
 pico_sdk_init()
 
 # minimize mode
-set(minimize 0)
+set(minimize 1)
 
 # rest of your project
 INCLUDE_DIRECTORIES(
@@ -33,7 +33,7 @@ add_compile_definitions(LUA_USE_LITTLEFS=1)
 add_compile_definitions(MINIMIZE_NO_COMPILER=1)
 
 if(${minimize} EQUAL 1)
-    add_compile_definitions(MINIMIZE=1)
+    add_compile_definitions(MINIMIZE_NO_STANDATD_LIB=1)
     add_compile_options(-Os -ffunction-sections -fdata-sections)
     add_link_options(-W --data-sections)
 endif()

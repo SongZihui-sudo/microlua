@@ -50,7 +50,7 @@ MINIMIZE_NO_COMPILER
 does not compile the lua parser  
 
 ```
-MINIMIZE
+MINIMIZE_NO_STANDATD_LIB
 ```
 Do not compile lua standard library  
 
