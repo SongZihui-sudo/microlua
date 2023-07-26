@@ -58,20 +58,6 @@ static void setsignal( int sig, void ( *handler )( int ) )
 
 #endif /* } */
 
-void test()
-{
-    int f = pico_open( "boot", lfs_mode( "w" ) );
-    int bytes[]
-    = {0x1b, 0x4c, 0x75, 0x61, 0x54, 0x0, 0x19, 0x93, 0xd, 0xa, 0x1a, 0xa, 0x4, 0x8, 0x8, 0x78, 0x56, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x28, 0x77, 0x40, 0x1, 0x90, 0x40, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x77, 0x6f, 0x72, 0x6c, 0x64, 0x2e, 0x6c, 0x75, 0x61, 0x80, 0x80, 0x0, 0x1, 0x2, 0x85, 0x51, 0x0, 0x0, 0x0, 0xb, 0x0, 0x0, 
-0x0, 0x83, 0x80, 0x0, 0x0, 0x44, 0x0, 0x2, 0x1, 0x46, 0x0, 0x1, 0x1, 0x82, 0x4, 0x86, 0x70, 0x72, 0x69, 0x6e, 0x74, 0x4, 0x8e, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 
-0x6f, 0x72, 0x6c, 0x64, 0x21, 0xa, 0x81, 0x1, 0x0, 0x0, 0x80, 0x85, 0x1, 0x0, 0x0, 0x0, 0x0, 0x80, 0x80, 0x81, 0x85, 0x5f, 0x45, 0x4e, 0x56};
-    for ( size_t i = 0; i < 116; i++ )
-    {
-        pico_write( f, &bytes[i], 1 );
-    }
-    pico_close( f );
-}
-
 /*
 ** Hook set by signal function to stop the interpreter.
 */
@@ -441,7 +427,6 @@ static int luaB_dofile( lua_State* L, const char* fname )
     return dofilecont( L, 0, 0 );
 }
 
-
 /* }================================================================== */
 
 /*
@@ -454,14 +439,45 @@ static int pmain( lua_State* L )
     luaL_openlibs( L );           /* open standard libraries */
     lua_gc( L, LUA_GCRESTART );   /* start GC... */
     lua_gc( L, LUA_GCGEN, 0, 0 ); /* ...in generational mode */
+    int i = 0;
 #ifndef MINIMIZE_NO_COMPILER
-    if ( lua_stdin_is_tty() )
-    { /* running in interactive mode? */
-        print_version();
-        doREPL( L ); /* do read-eval-print loop */
+    while ( i < 100 )
+    {
+        if ( tud_cdc_connected() )
+        {
+            if ( lua_stdin_is_tty() )
+            { /* running in interactive mode? */
+                print_version();
+                doREPL( L ); /* do read-eval-print loop */
+            }
+        }
+        i++;
     }
 #else
-    luaB_dofile(L, "boot");
+    while ( i < 50 )
+    {
+        if ( tud_cdc_connected() )
+        {
+            char buffer[5];
+            int fp = pico_open( "boot", lfs_mode( "w" ) );
+            while ( 1 )
+            {
+                readLine( ">", buffer );
+                int cur = atoi( buffer );
+                if ( cur == -1 )
+                {
+                    break;
+                }
+                pico_write( fp, &cur, 1 );
+                i++;
+            }
+            pico_close( fp );
+            break;
+        }
+        i++;
+        sleep_ms( 100 );
+    }
+    luaB_dofile( L, "boot" );
 #endif
     lua_pushboolean( L, 1 ); /* signal no errors */
     return 1;
@@ -480,17 +496,12 @@ static int initialize_filesystem()
             ( int )stat.block_count,
             ( int )stat.block_size,
             ( int )stat.blocks_used );
-    test();
     return 0;
 }
 
 int main( int argc, char** argv )
 {
     stdio_init();
-    while ( !tud_cdc_connected() )
-    {
-        sleep_ms( 100 );
-    }
     initialize_filesystem();
     int status, result;
     lua_State* L = luaL_newstate(); /* create state */
