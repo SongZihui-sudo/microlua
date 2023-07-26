@@ -416,6 +416,8 @@ LUAMOD_API int luaopen_os( lua_State* L )
     return 1;
 }
 
-#ifdef LUA_USE_WINDOWS
-#include "../windows/win_loslib.C"
+#ifdef LUA_USE_RP2040
+#include "../ports/rp2/rp2_loslib.c"
+#elif defined( LUA_USE_WINDOWS )
+#include "../windows/win_loslib.c"
 #endif
