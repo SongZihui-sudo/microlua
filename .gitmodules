@@ -7,9 +7,6 @@
 [submodule "lib/gear-lib"]
 	path = lib/gear-lib
 	url = https://github.com/gozfree/gear-lib.git
-[submodule "lib/littlefs-lib"]
-	path = lib/littlefs-lib
-	url = https://github.com/lurk101/littlefs-lib.git
 [submodule "lib/stdinit-lib"]
 	path = lib/stdinit-lib
 	url = https://github.com/lurk101/stdinit-lib.git

@@ -10,13 +10,13 @@ PROJECT(MicroLua)
 pico_sdk_init()
 
 # minimize mode
-set(minimize 1)
+set(minimize 0)
 
 # rest of your project
 INCLUDE_DIRECTORIES(
     .
     ../../lib/pico-sdk/lib/tinyusb
-    ../../lib/littlefs-lib
+    ../../lib/littlefs
     ../../lib/stdinit-lib
     ../../lib/lw_oopc
     ../../src/
@@ -26,7 +26,7 @@ LIST(APPEND source_rp2 ../../src/onelua.c)
 AUX_SOURCE_DIRECTORY(. source_rp2)
 AUX_SOURCE_DIRECTORY(../../src/interface source_rp2)
 AUX_SOURCE_DIRECTORY(../../lib/stdinit-lib/ source_rp2)
-AUX_SOURCE_DIRECTORY(../../lib/littlefs-lib/ source_rp2)
+AUX_SOURCE_DIRECTORY(../../lib/littlefs/ source_rp2)
 
 add_compile_definitions(LUA_USE_RP2040=1)
 add_compile_definitions(LUA_USE_LITTLEFS=1)

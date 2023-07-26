@@ -944,19 +944,29 @@ LUALIB_API int luaL_loadfilex( lua_State* L, const char* filename, const char* m
     int c;
     int fnameindex = lua_gettop( L ) + 1; /* index of filename on the stack */
     lua_pushfstring( L, "@%s", filename );
-    lf.f = pico_open( filename, lfs_mode( "r" ) );
+    lf.f = pico_open( filename, lfs_mode("r") );
     if ( lf.f < 0 )
         return errfile( L, "open", fnameindex );
     lf.n = 0;
     if ( skipcomment( lf.f, &c ) ) /* read initial portion */
         lf.buff[lf.n++] = '\n';    /* add newline to correct line numbers */
-    /* binary file? */
-    lf.n = 0;                /* remove possible newline */
-    skipcomment( lf.f, &c ); /* re-read initial portion */
+    if ( c == LUA_SIGNATURE[0] )
+    {             /* binary file? */
+        lf.n = 0; /* remove possible newline */
+        if ( filename )
+        {                      
+            pico_close(lf.f);                     /* "real" file? */
+            lf.f = pico_open( filename, lfs_mode("r") ); /* reopen in binary mode */
+            if ( lf.f < 0 )
+                return errfile( L, "reopen", fnameindex );
+            skipcomment( lf.f, &c ); /* re-read initial portion */
+        }
+    }
     if ( c != EOF )
         lf.buff[lf.n++] = c; /* 'c' is the first character of the stream */
-    status = lua_load( L, getF, &lf, lua_tostring( L, -1 ), mode );
-    pico_close( lf.f ); /* close file (even in case of errors) */
+    status     = lua_load( L, getF, &lf, lua_tostring( L, -1 ), mode );
+    if ( filename )
+        pico_close( lf.f ); /* close file (even in case of errors) */
     lua_remove( L, fnameindex );
     return status;
 }
