@@ -20,8 +20,11 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
+#ifdef LUA_RP2040_USB
 #include "tusb.h"
-#include "pico_hal.h"
+#endif
+
+#include "lfs_hal.h"
 #include "stdinit.h"
 
 #if !defined( LUA_PROGNAME )
@@ -441,6 +444,7 @@ static int pmain( lua_State* L )
     lua_gc( L, LUA_GCGEN, 0, 0 ); /* ...in generational mode */
     int i = 0;
 #ifndef MINIMIZE_NO_COMPILER
+#ifdef LUA_RP2040_USB
     while ( i < 100 )
     {
         if ( tud_cdc_connected() )
@@ -453,13 +457,15 @@ static int pmain( lua_State* L )
         }
         i++;
     }
+#endif
 #else
+#ifdef LUA_RP2040_USB
     while ( i < 50 )
     {
         if ( tud_cdc_connected() )
         {
             char buffer[5];
-            int fp = pico_open( "boot", lfs_mode( "w" ) );
+            int fp = _lfs_open( "boot", _lfs_mode( "w" ) );
             while ( 1 )
             {
                 readLine( ">", buffer );
@@ -468,16 +474,19 @@ static int pmain( lua_State* L )
                 {
                     break;
                 }
-                pico_write( fp, &cur, 1 );
+                _lfs_write( fp, &cur, 1 );
                 i++;
             }
-            pico_close( fp );
+            _lfs_close( fp );
             break;
         }
         i++;
         sleep_ms( 100 );
     }
     luaB_dofile( L, "boot" );
+#else
+    luaB_dofile( L, "boot" );
+#endif
 #endif
     lua_pushboolean( L, 1 ); /* signal no errors */
     return 1;
@@ -485,13 +494,13 @@ static int pmain( lua_State* L )
 
 static int initialize_filesystem()
 {
-    if ( pico_mount( true ) < 0 )
+    if ( _lfs_mount( true ) < 0 )
     {
         printf( "Mount failed\n" );
         return -1;
     }
-    struct pico_fsstat_t stat;
-    pico_fsstat( &stat );
+    struct lfs_fsstat_t stat;
+    _lfs_fsstat( &stat );
     printf( "FS: blocks %d, block size %d, used %d\n",
             ( int )stat.block_count,
             ( int )stat.block_size,
@@ -512,11 +521,9 @@ int main( int argc, char** argv )
     }
     lua_gc( L, LUA_GCSTOP );          /* stop GC while building state */
     lua_pushcfunction( L, &pmain );   /* to call 'pmain' in protected mode */
-    lua_pushinteger( L, argc );       /* 1st argument */
-    lua_pushlightuserdata( L, argv ); /* 2nd argument */
     status = lua_pcall( L, 2, 1, 0 ); /* do the call */
     result = lua_toboolean( L, -1 );  /* get result */
     report( L, status );
     lua_close( L );
-    return ( result && status == LUA_OK ) ? EXIT_SUCCESS : EXIT_FAILURE;
+    return 0;
 }

@@ -1,22 +1,11 @@
-#include "stm32_pin.h"
+#include "pin.h"
 
-void pin_value( pin* self, bool value ) {}
+int pin_on( lua_State* L ) {}
 
-void pin_on( pin* self ) {}
+int pin_off( lua_State* L ) {}
 
-void pin_off( pin* self ) {}
+int pin_value( lua_State* L ) {}
 
-void stm32_pin_init( stm32_pin* self, int index )
-{
-    assert( self );
-    self->pin.mIndex = index;
-    self->pin.mValue = 0;
-}
+int pin_mode( lua_State* L ) {}
 
-CTOR( stm32_pin )
-SUPER_CTOR( pin );
-FUNCTION_SETTING( Ipin.value, pin_value );
-FUNCTION_SETTING( Ipin.on, pin_on );
-FUNCTION_SETTING( Ipin.off, pin_off );
-FUNCTION_SETTING( init, stm32_pin_init );
-END_CTOR
+int pin_status( lua_State* L ) {}

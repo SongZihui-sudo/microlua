@@ -859,7 +859,7 @@ LUALIB_API int luaL_loadfilex( lua_State* L, const char* filename, const char* m
 
 #else
 
-#include "pico_hal.h"
+#include "lfs_hal.h"
 
 typedef struct LoadF
 {
@@ -885,7 +885,7 @@ static const char* getF( lua_State* L, void* ud, size_t* size )
         lfs_file_t* fp = ( lfs_file_t* )lf->f;
         if ( fp->pos >= fp->ctz.size )
             return NULL;
-        *size = pico_read( lf->f, lf->buff, 1 * sizeof( lf->buff ) ); /* read block */
+        *size = _lfs_read( lf->f, lf->buff, 1 * sizeof( lf->buff ) ); /* read block */
     }
     return lf->buff;
 }
@@ -907,9 +907,9 @@ static int errfile( lua_State* L, const char* what, int fnameindex )
 */
 static int skipBOM( int f )
 {
-    int c = pico_getc( f ); /* read first character */
-    if ( c == 0xEF && pico_getc( f ) == 0xBB && pico_getc( f ) == 0xBF ) /* correct BOM? */
-        return pico_getc( f ); /* ignore BOM and return next char */
+    int c = _lfs_getc( f ); /* read first character */
+    if ( c == 0xEF && _lfs_getc( f ) == 0xBB && _lfs_getc( f ) == 0xBF ) /* correct BOM? */
+        return _lfs_getc( f ); /* ignore BOM and return next char */
     else                       /* no (valid) BOM */
         return c;              /* return first character */
 }
@@ -928,9 +928,9 @@ static int skipcomment( int f, int* cp )
     { /* first line is a comment (Unix exec. file)? */
         do
         { /* skip first line */
-            c = pico_getc( f );
+            c = _lfs_getc( f );
         } while ( c != EOF && c != '\n' );
-        *cp = pico_getc( f ); /* next character after comment, if present */
+        *cp = _lfs_getc( f ); /* next character after comment, if present */
         return 1;             /* there was a comment */
     }
     else
@@ -944,7 +944,7 @@ LUALIB_API int luaL_loadfilex( lua_State* L, const char* filename, const char* m
     int c;
     int fnameindex = lua_gettop( L ) + 1; /* index of filename on the stack */
     lua_pushfstring( L, "@%s", filename );
-    lf.f = pico_open( filename, lfs_mode("r") );
+    lf.f = _lfs_open( filename, _lfs_mode( "r" ) );
     if ( lf.f < 0 )
         return errfile( L, "open", fnameindex );
     lf.n = 0;
@@ -954,9 +954,9 @@ LUALIB_API int luaL_loadfilex( lua_State* L, const char* filename, const char* m
     {             /* binary file? */
         lf.n = 0; /* remove possible newline */
         if ( filename )
-        {                      
-            pico_close(lf.f);                     /* "real" file? */
-            lf.f = pico_open( filename, lfs_mode("r") ); /* reopen in binary mode */
+        {
+            _lfs_close( lf.f );                             /* "real" file? */
+            lf.f = _lfs_open( filename, _lfs_mode( "r" ) ); /* reopen in binary mode */
             if ( lf.f < 0 )
                 return errfile( L, "reopen", fnameindex );
             skipcomment( lf.f, &c ); /* re-read initial portion */
@@ -964,9 +964,9 @@ LUALIB_API int luaL_loadfilex( lua_State* L, const char* filename, const char* m
     }
     if ( c != EOF )
         lf.buff[lf.n++] = c; /* 'c' is the first character of the stream */
-    status     = lua_load( L, getF, &lf, lua_tostring( L, -1 ), mode );
+    status = lua_load( L, getF, &lf, lua_tostring( L, -1 ), mode );
     if ( filename )
-        pico_close( lf.f ); /* close file (even in case of errors) */
+        _lfs_close( lf.f ); /* close file (even in case of errors) */
     lua_remove( L, fnameindex );
     return status;
 }

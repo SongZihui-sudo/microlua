@@ -5,25 +5,29 @@
 #include <stddef.h>
 #include <assert.h>
 
-#include "lw_oopc.h"
+#include "lua.h"
 
 /**
  * @brief pin class
  *
  */
-ABS_CLASS( pin )
+struct pin
 {
     int mIndex;
     bool mValue;
-    void ( *init )( pin*, bool );
-    bool ( *status )( pin* );
+    int mode;
 };
 
-INTERFACE( Ipin )
-{
-    void ( *value )( pin*, bool );
-    void ( *on )( pin* );
-    void ( *off )( pin* );
-};
+int pin_init( lua_State* L );
+
+int pin_on( lua_State* L );
+
+int pin_off( lua_State* L );
+
+int pin_value( lua_State* L );
+
+int pin_mode( lua_State* L );
+
+int pin_status( lua_State* L );
 
 #endif

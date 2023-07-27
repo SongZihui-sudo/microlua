@@ -10,7 +10,7 @@
 #include "lualib.h"
 
 #include "lfs.h"
-#include "pico_hal.h"
+#include "lfs_hal.h"
 
 #include <stdint.h>
 #include <ctype.h>
@@ -31,12 +31,6 @@ static int f_close( lua_State* L );
 #define MAXARGLINE 250
 #define l_lockfile( f ) ( ( void )0 )
 #define l_unlockfile( f ) ( ( void )0 )
-#define DEBUG( format, ... )                                                               \
-    printf(                                                                                \
-    "File: "__FILE__                                                                       \
-    ", Line: %05d: " format "/n",                                                          \
-    __LINE__,                                                                              \
-    ##__VA_ARGS__ )
 
 static int io_readline( lua_State* L );
 
@@ -133,7 +127,7 @@ static LStream* newprefile( lua_State* L )
 static int io_fclose( lua_State* L )
 {
     LStream* p = tolstream( L );
-    int res    = pico_close( p->f );
+    int res    = _lfs_close( p->f );
     return luaL_fileresult( L, ( res == 0 ), NULL );
 }
 
@@ -161,7 +155,7 @@ static int read_chars( lua_State* L, int f, size_t n )
     luaL_Buffer b;
     luaL_buffinit( L, &b );
     p  = luaL_prepbuffsize( &b, n );            /* prepare buffer to read whole block */
-    nr = pico_read( f, p, sizeof( char ) * n ); /* try to read 'n' chars */
+    nr = _lfs_read( f, p, sizeof( char ) * n ); /* try to read 'n' chars */
     luaL_addsize( &b, nr );
     luaL_pushresult( &b ); /* close buffer */
     return ( nr > 0 );     /* true iff read something */
@@ -177,7 +171,7 @@ static int read_line( lua_State* L, int f, int chop )
         char* buff = luaL_prepbuffer( &b ); /* preallocate buffer space */
         int i      = 0;
         l_lockfile( f ); /* no memory errors can happen inside the lock */
-        while ( i < LUAL_BUFFERSIZE && ( c = pico_getc( f ) ) != EOF && c != '\n' )
+        while ( i < LUAL_BUFFERSIZE && ( c = _lfs_getc( f ) ) != EOF && c != '\n' )
         {
             if ( c <= 0 )
             {
@@ -208,7 +202,7 @@ static int nextc( RN* rn )
     else
     {
         rn->buff[rn->n++] = rn->c;              /* save current char */
-        rn->c             = pico_getc( rn->f ); /* read next one */
+        rn->c             = _lfs_getc( rn->f ); /* read next one */
         return 1;
     }
 }
@@ -221,7 +215,7 @@ static void read_all( lua_State* L, int f )
     do
     { /* read file in chunks of LUAL_BUFFERSIZE bytes */
         char* p = luaL_prepbuffer( &b );
-        nr      = pico_read( f, p, sizeof( char ) * LUAL_BUFFERSIZE );
+        nr      = _lfs_read( f, p, sizeof( char ) * LUAL_BUFFERSIZE );
         luaL_addsize( &b, nr );
     } while ( nr == LUAL_BUFFERSIZE );
     luaL_pushresult( &b ); /* close buffer */
@@ -229,8 +223,8 @@ static void read_all( lua_State* L, int f )
 
 static int test_eof( lua_State* L, int f )
 {
-    int c = pico_getc( f );
-    pico_ungetc( c, f ); /* no-op when c == EOF */
+    int c = _lfs_getc( f );
+    _lfs_ungetc( c, f ); /* no-op when c == EOF */
     lua_pushliteral( L, "" );
     return ( c != EOF );
 }
@@ -275,7 +269,7 @@ static int read_number( lua_State* L, int f )
     l_lockfile( rn.f );
     do
     {
-        rn.c = pico_getc( rn.f );
+        rn.c = _lfs_getc( rn.f );
     } while ( isspace( rn.c ) ); /* skip spaces */
     test2( &rn, "-+" );          /* optional sign */
     if ( test2( &rn, "00" ) )
@@ -293,7 +287,7 @@ static int read_number( lua_State* L, int f )
         test2( &rn, "-+" );   /* exponent sign */
         readdigits( &rn, 0 ); /* exponent digits */
     }
-    pico_ungetc( rn.c, rn.f ); /* unread look-ahead char */
+    _lfs_ungetc( rn.c, rn.f ); /* unread look-ahead char */
     l_unlockfile( rn.f );
     rn.buff[rn.n] = '\0'; /* finish string */
     if ( l_likely( lua_stringtonumber( L, rn.buff ) ) )
@@ -352,7 +346,7 @@ static int g_read( lua_State* L, int f, int first )
             }
         }
     }
-    if ( strcmp( pico_errmsg( success ), "Unknown error" ) )
+    if ( strcmp( _lfs_errmsg( success ), "Unknown error" ) )
     {
         return luaL_fileresult( L, 0, NULL );
     }
@@ -377,14 +371,14 @@ static int g_write( lua_State* L, int f, int arg )
             int len = lua_isinteger( L, arg ) ?
                       sprintf( buffer, LUA_INTEGER_FMT, ( LUAI_UACINT )lua_tointeger( L, arg ) ) :
                       sprintf( buffer, LUA_NUMBER_FMT, ( LUAI_UACNUMBER )lua_tonumber( L, arg ) );
-            pico_write( f, buffer, strlen( buffer ) );
+            _lfs_write( f, buffer, strlen( buffer ) );
             status = status && ( len > 0 );
         }
         else
         {
             size_t l;
             const char* s = luaL_checklstring( L, arg, &l );
-            status = status && ( pico_write( f, s, sizeof( char ) * strlen( s ) ) == l );
+            status = status && ( _lfs_write( f, s, sizeof( char ) * strlen( s ) ) == l );
         }
     }
     if ( l_likely( status ) )
@@ -457,8 +451,8 @@ static int io_close( lua_State* L )
 static void opencheck( lua_State* L, const char* fname, const char* mode )
 {
     LStream* p = newfile( L );
-    int _mode  = lfs_mode( mode );
-    p->f       = pico_open( fname, _mode );
+    int _mode  = _lfs_mode( mode );
+    p->f       = _lfs_open( fname, _mode );
     if ( l_unlikely( p->f == 0 ) )
         luaL_error( L, "cannot open file '%s' (%s)", fname, strerror( errno ) );
 }
@@ -499,12 +493,12 @@ static int io_pclose( lua_State* L )
 {
     LStream* p = tolstream( L );
     errno      = 0;
-    return luaL_execresult( L, pico_close( p->f ) );
+    return luaL_execresult( L, _lfs_close( p->f ) );
 }
 
 static int io_flush( lua_State* L )
 {
-    int res = luaL_fileresult( L, pico_fflush( getiofile( L, IO_OUTPUT ) ) == 0, NULL );
+    int res = luaL_fileresult( L, _lfs_fflush( getiofile( L, IO_OUTPUT ) ) == 0, NULL );
     return res;
 }
 
@@ -558,8 +552,8 @@ static int io_popen( lua_State* L )
     const char* mode     = luaL_optstring( L, 2, "r" );
     LStream* p           = newprefile( L );
     luaL_argcheck( L, l_checkmodep( mode ), 2, "invalid mode" );
-    int _mode = lfs_mode( mode );
-    p->f      = pico_open( filename, _mode );
+    int _mode = _lfs_mode( mode );
+    p->f      = _lfs_open( filename, _mode );
     p->closef = &io_pclose;
     return ( p->f == 0 ) ? luaL_fileresult( L, 0, filename ) : 1;
 }
@@ -599,8 +593,8 @@ static int io_open( lua_State* L )
     LStream* p           = newfile( L );
     const char* md       = mode; /* to traverse/check mode */
     luaL_argcheck( L, l_checkmode( md ), 2, "invalid mode" );
-    int _mode = lfs_mode( md );
-    p->f      = pico_open( filename, _mode );
+    int _mode = _lfs_mode( md );
+    p->f      = _lfs_open( filename, _mode );
     return ( p->f == 0 ) ? luaL_fileresult( L, 0, filename ) : 1;
 }
 
@@ -626,7 +620,7 @@ static int f_lines( lua_State* L )
 
 static int f_flush( lua_State* L )
 {
-    int res = luaL_fileresult( L, pico_fflush( ( int )tofile( L ) ) == 0, NULL );
+    int res = luaL_fileresult( L, _lfs_fflush( ( int )tofile( L ) ) == 0, NULL );
     return res;
 }
 
@@ -640,15 +634,15 @@ static int f_seek( lua_State* L )
     lua_Integer p3                       = luaL_optinteger( L, 3, 0 );
     l_seeknum offset                     = ( l_seeknum )p3;
     luaL_argcheck( L, ( lua_Integer )offset == p3, 3, "not an integer in proper range" );
-    op                 = pico_lseek( f, offset, mode[op] );
-    const char* errmsg = pico_errmsg( op );
+    op                 = _lfs_lseek( f, offset, mode[op] );
+    const char* errmsg = _lfs_errmsg( op );
     if ( strcmp( errmsg, "Unknown error" ) )
     {
         return luaL_fileresult( L, 0, NULL ); /* error */
     }
     else
     {
-        lua_pushinteger( L, ( lua_Integer )pico_tell( f ) );
+        lua_pushinteger( L, ( lua_Integer )_lfs_tell( f ) );
         return 1;
     }
 }
@@ -716,9 +710,9 @@ static int io_noclose( lua_State* L )
 static void createstdfile( lua_State* L, const char* k, const char* fname )
 {
     LStream* p = newprefile( L );
-    p->f       = pico_open( fname, LFS_O_WRONLY | LFS_O_CREAT );
-    pico_write( p->f, fname, strlen( fname ) );
-    pico_close( p->f );
+    p->f       = _lfs_open( fname, LFS_O_WRONLY | LFS_O_CREAT );
+    _lfs_write( p->f, fname, strlen( fname ) );
+    _lfs_close( p->f );
     p->closef = &io_noclose;
     if ( k != NULL )
     {

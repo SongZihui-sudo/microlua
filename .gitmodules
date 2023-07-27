@@ -1,9 +1,6 @@
 [submodule "lib/pico-sdk"]
 	path = lib/pico-sdk
 	url = https://github.com/raspberrypi/pico-sdk.git
-[submodule "lib/lw-oopc"]
-	path = lib/lw_oopc
-	url = https://github.com/Akagi201/lw_oopc.git
 [submodule "lib/gear-lib"]
 	path = lib/gear-lib
 	url = https://github.com/gozfree/gear-lib.git

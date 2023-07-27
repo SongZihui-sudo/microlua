@@ -5,6 +5,6 @@ target_sources(littlefs-lib INTERFACE
     ${CMAKE_CURRENT_LIST_DIR}/lfs.c
     ${CMAKE_CURRENT_LIST_DIR}/lfs.h
     ${CMAKE_CURRENT_LIST_DIR}/lfs_util.h
-    ${CMAKE_CURRENT_LIST_DIR}/pico_hal.c
-    ${CMAKE_CURRENT_LIST_DIR}/pico_hal.h)
+    ${CMAKE_CURRENT_LIST_DIR}/lfs_hal.c
+    ${CMAKE_CURRENT_LIST_DIR}/lfs_hal.h)
 

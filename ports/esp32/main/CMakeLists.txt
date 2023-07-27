@@ -1,5 +1,4 @@
 LIST( APPEND include_esp32
-    ../../../lib/lw_oopc
     ../../../src/
     ../../../src/interface)
 

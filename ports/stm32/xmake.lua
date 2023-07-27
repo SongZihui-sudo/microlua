@@ -1,7 +1,6 @@
 add_rules("mode.debug", "mode.release")
 
 add_includedirs("./src")
-add_includedirs("../../lib/lw_oopc")
 add_includedirs("../../src/")
 add_includedirs("../../src/interface")
 add_includedirs("./libs/cmsis")

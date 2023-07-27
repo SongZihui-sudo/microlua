@@ -73,7 +73,9 @@
 #include "lopcodes.c"
 #include "lmem.c"
 #include "lundump.c"
+#ifndef MINIMIZE_NO_COMPILER
 #include "ldump.c"
+#endif
 #include "lstate.c"
 #include "lgc.c"
 #include "llex.c"
@@ -97,8 +99,10 @@
 #ifndef MINIMIZE_NO_STANDATD_LIB
 #include "lcorolib.c"
 #include "ldblib.c"
-#ifndef LUA_USE_RP2040
+#ifndef LUA_USE_LITTLEFS
 #include "liolib.c"
+#else
+#include "lfsliolib.c"
 #endif
 #include "lmathlib.c"
 #include "loadlib.c"

@@ -11,6 +11,8 @@ pico_sdk_init()
 
 # minimize mode
 set(minimize 1)
+# usb uart
+set(usb 1)
 
 # rest of your project
 INCLUDE_DIRECTORIES(
@@ -18,13 +20,12 @@ INCLUDE_DIRECTORIES(
     ../../lib/pico-sdk/lib/tinyusb
     ../../lib/littlefs
     ../../lib/stdinit-lib
-    ../../lib/lw_oopc
     ../../src/
     ../../src/interface)
 
 LIST(APPEND source_rp2 ../../src/onelua.c)
 AUX_SOURCE_DIRECTORY(. source_rp2)
-AUX_SOURCE_DIRECTORY(../../src/interface source_rp2)
+AUX_SOURCE_DIRECTORY(../../src/interface/ source_rp2)
 AUX_SOURCE_DIRECTORY(../../lib/stdinit-lib/ source_rp2)
 AUX_SOURCE_DIRECTORY(../../lib/littlefs/ source_rp2)
 
@@ -33,6 +34,7 @@ add_compile_definitions(LUA_USE_LITTLEFS=1)
 add_compile_definitions(MINIMIZE_NO_COMPILER=1)
 
 if(${minimize} EQUAL 1)
+    add_compile_definitions(MINIMIZE_NO_LDEBUG=1)
     add_compile_definitions(MINIMIZE_NO_STANDATD_LIB=1)
     add_compile_options(-Os -ffunction-sections -fdata-sections)
     add_link_options(-W --data-sections)
@@ -42,7 +44,10 @@ endif()
 ADD_EXECUTABLE(microlua_rp2 ${source_rp2})
 target_link_libraries(microlua_rp2 pico_stdlib)
 
-pico_enable_stdio_usb(microlua_rp2 1)
-pico_enable_stdio_uart(microlua_rp2 0)
+if(${usb} EQUAL 1)
+    add_compile_definitions(LUA_RP2040_USB=1)
+    pico_enable_stdio_usb(microlua_rp2 1)
+    pico_enable_stdio_uart(microlua_rp2 0)
+endif()
 
 pico_add_extra_outputs(microlua_rp2)
