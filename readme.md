@@ -21,6 +21,8 @@ Run lua interpreter to execute lua script like on pc.
 ### light mode  
 Precompile the lua script into bytecode on the PC, and then execute the lua bytecode on the microcontroller, which does not support interpreter interaction.   
 
+[doc](https://zhuanlan.zhihu.com/p/646082749)  
+
 ## Build
 
 using xmake and cmake, esp-idf(for esp32), pico-sdk(for rp2040), keil mdk(for stm32),gunArm.    
